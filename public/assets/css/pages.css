@@ -1,0 +1,654 @@
+/* #mission-vision {
+    padding: 60px 0;
+    color: #fff;
+  }
+  
+  .mission-vision .container {
+    display: flex;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+  
+  .mission, .vision {
+    width: 48%;
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+  }
+  
+  .mission:hover, .vision:hover {
+    transform: translateY(-10px);
+    background-color: rgba(0, 0, 0, 0.1);
+
+  }
+  
+  .mission h3, .vision h3 {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .mission p, .vision p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: blue;
+  }
+  
+  .mission-vision .container .mission, .mission-vision .container .vision {
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .mission, .vision {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+  }
+   */
+
+  
+
+
+.faq-container {
+  width: 90%;
+  max-width: 750px;
+  margin: 40px auto;
+  font-family: 'Arial', sans-serif;
+}
+
+/* تحسين العنوان ليكون دائمًا في المنتصف */
+/* .faq-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: #003d80;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.faq-title::after {
+  content: "";
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #0056b3, #003d80);
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 2px;
+} */
+
+/* عناصر الأسئلة */
+
+
+
+
+/* Contact section styling */
+.contact-section {
+  width: 100%;
+  max-width: 800px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  padding: 50px;
+  transition: transform 0.3s ease;
+  margin: auto;
+  background: linear-gradient(135deg, #6a82fb, #fc5c7d);
+}
+
+.contact-section:hover {
+  transform: scale(1.05);
+}
+
+.contact-container {
+  background-color: #fff;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.contact-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 30px;
+}
+
+.logo-container {
+  margin-right: 20px;
+}
+
+.logo {
+  width: 60px; /* Adjust based on logo size */
+  height: auto;
+}
+
+.text-container {
+  flex-grow: 1;
+}
+
+.contact-header h1 {
+  font-size: 2.5em;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.contact-header p {
+  font-size: 1.1em;
+  color: #777;
+}
+
+/* Form styling */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-form .form-group {
+  margin-bottom: 20px;
+}
+
+.contact-form label {
+  font-size: 1.1em;
+  color: #333;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 15px;
+  font-size: 1em;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background-color: #f7f7f7;
+  margin-bottom: 10px;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  border-color: #fc5c7d;
+  box-shadow: 0 0 8px rgba(252, 92, 125, 0.5);
+  outline: none;
+}
+
+.contact-form textarea {
+  resize: vertical;
+}
+
+/* تطبيق التنسيقات فقط على العناصر داخل النموذج باستخدام class */
+.registration-form {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+.registration-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.registration-form input[type="text"],
+.registration-form input[type="tel"],
+.registration-form input[type="number"],
+.registration-form input[type="email"],
+.registration-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.registration-form .phone-input {
+  display: flex;
+  gap: 10px;
+}
+
+.registration-form .phone-input select {
+  width: auto;
+}
+
+.registration-form input[type="radio"] {
+  margin-right: 10px;
+}
+
+.registration-form .radio-group {
+  margin-bottom: 20px;
+}
+
+.registration-form .radio-group label {
+  display: inline;
+  font-weight: normal;
+}
+
+.registration-form input[type="submit"] {
+  background-color: #2857a7;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.registration-form input[type="submit"]:hover {
+  background-color: #130a56;
+}
+
+
+/* Login Container */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin-bottom: 50px;
+}
+
+/* Login Box */
+.login {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+/* Logo Container */
+.lc {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.logo-login {
+  width: 120px; /* زيادة الحجم قليلاً لزيادة وضوح الشعار */
+  height: 120px;
+  object-fit: contain; /* يجعل الصورة تتناسب بشكل جيد داخل الحيز المخصص */
+  border-radius: 50%; /* إضافة تأثير دائري للشعار */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* إضافة ظل خفيف لإعطاء لمسة احترافية */
+}
+
+/* Heading */
+h2 {
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #333;
+  font-weight: 700; /* زيادة الوزن لجعل النص أكثر وضوحًا */
+  letter-spacing: 1px;
+  text-transform: uppercase; /* تحويل النص إلى أحرف كبيرة لإعطاء مظهر رسمي */
+}
+
+/* Input Fields */
+.input-container {
+  margin-bottom: 20px;
+  text-align: left;
+  position: relative;
+}
+
+.input-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #555;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.input-container input:focus {
+  border-color: #034bb8; /* تغيير اللون عند التركيز */
+  box-shadow: 0 0 8px rgba(3, 75, 184, 0.2); /* إضافة تأثير ظل عند التركيز */
+}
+
+/* Submit Button */
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background-color: #034bb8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-submit:hover {
+  background-color: #112963;
+  transform: translateY(-2px); /* تأثير رفع الزر عند التمرير */
+}
+
+.btn-submit:active {
+  transform: translateY(0); /* استعادة الزر لحالته الأصلية عند النقر */
+}
+
+/* Signup Link */
+.signup-link {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.signup-link a {
+  color: #034bb8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+  color: #112963; /* تغيير اللون عند التمرير */
+}
+
+ /* Global Styles */
+ :root {
+  --primary-color: #3498db;
+  --accent-color: #f39c12;
+  --dark-color: #2c3e50;
+  --light-color: #ecf0f1;
+}
+
+.section-one, .section-two, .section-three, 
+.section-four, .section-five, .section-six,
+.section-seven, .section-eight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 80px 10%;
+  min-height: 70vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Alternating Background Colors - More Vibrant */
+.section-one, .section-three, .section-five, .section-seven {
+  background-color: #f5f7fa;
+}
+
+.section-two, .section-four, .section-six, .section-eight {
+  background-color: #ffffff;
+}
+
+/* Content Styling with Vibrant Colors */
+.attendance-management, .leave-management, 
+.absences-management, .performance-management,
+.reports-management, .payroll-management,
+.notifications-management, .dashboard-management {
+  width: 48%;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: white;
+  /* border-top: 5px solid var(--primary-color); */
+  position: relative;
+  z-index: 2;
+}
+
+/* Image Styling with Vibrant Border */
+.img1, .img2, .img3, .img4,
+.img5, .img6, .img7, .img8 {
+  width: 48%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transition: transform 0.5s ease;
+  /* border: 3px solid var(--accent-color); */
+}
+
+/* Hover Effects with Vibrant Colors */
+.img1:hover, .img2:hover, .img3:hover, .img4:hover,
+.img5:hover, .img6:hover, .img7:hover, .img8:hover {
+  transform: scale(1.03);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  /* border-color: var(--secondary-color); */
+}
+
+/* Typography with Colorful Accents */
+h2 {
+  color: var(--dark-color);
+  font-size: 2.2rem;
+  margin-bottom: 25px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: var(--accent-color);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: flex-start;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #555;
+  padding: 10px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+li:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  transform: translateX(5px);
+}
+
+.check-icon {
+  color: var(--success-color);
+  font-weight: bold;
+  margin-right: 12px;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  background: rgba(46, 204, 113, 0.1);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive Layout */
+@media (max-width: 1200px) {
+  .section-one, .section-two, .section-three, 
+  .section-four, .section-five, .section-six,
+  .section-seven, .section-eight {
+    flex-direction: column;
+    padding: 60px 5%;
+  }
+
+  .attendance-management, .leave-management, 
+  .absences-management, .performance-management,
+  .reports-management, .payroll-management,
+  .notifications-management, .dashboard-management,
+  .img1, .img2, .img3, .img4,
+  .img5, .img6, .img7, .img8 {
+    width: 100%;
+    margin-bottom: 30px;
+  }
+
+  /* Alternate image position on mobile */
+  .section-two, .section-four, .section-six, .section-eight {
+    /* flex-direction: column-reverse; */
+  }
+}
+
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.8rem;
+  }
+  
+  li {
+    font-size: 1rem;
+  }
+}
+
+/* Vibrant Call to Action Section */
+
+
+.mission-vision {
+  padding: 100px 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.mission-vision .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 40px;
+}
+
+.mission, .vision {
+  background: white;
+  padding: 50px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  z-index: 1;
+}
+
+.mission:hover, .vision:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.mission::before, .vision::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, #3498db, #e74c3c);
+}
+
+.mission h3, .vision h3 {
+  color: #2c3e50;
+  font-size: 2rem;
+  margin-bottom: 25px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.mission h3::after, .vision h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #f39c12;
+}
+
+.mission p, .vision p {
+  color: #555;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 0;
+}
+
+/* Decorative Elements */
+.mission-vision::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: rgba(52, 152, 219, 0.05);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.mission-vision::after {
+  content: '';
+  position: absolute;
+  bottom: -150px;
+  left: -150px;
+  width: 400px;
+  height: 400px;
+  background: rgba(231, 76, 60, 0.05);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .mission-vision .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .mission-vision {
+    padding: 60px 0;
+  }
+  
+  .mission, .vision {
+    padding: 30px;
+  }
+  
+  .mission h3, .vision h3 {
+    font-size: 1.6rem;
+  }
+  
+  .mission p, .vision p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .mission-vision .container {
+    padding: 0 15px;
+  }
+  
+  .mission, .vision {
+    padding: 25px 20px;
+  }
+}
