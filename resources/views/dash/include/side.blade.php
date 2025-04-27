@@ -1,10 +1,18 @@
-<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4" id="sidenav-main" style="
-    background: #fffafa;
-    box-shadow: 0 0 28px 0 rgba(82, 63, 105, 0.08);
-">
+<style>
+    .nav-link-custom {
+        border-radius: 6px;
+        margin: 0 8px;
+        transition: all 0.3s ease;
+        color: #5e5873;
+    }
+    .nav-link-custom.active {
+        background-color: #f6f6f6;
+        font-weight: bold;
+    }
+</style>
+
+<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4" id="sidenav-main" style="background: #fffafa; box-shadow: 0 0 28px 0 rgba(82, 63, 105, 0.08);">
     <div class="sidenav-header d-flex flex-column align-items-center pt-4">
-      
-        </a>
         <div class="mt-3 text-center">
             <h6 class="mb-0 text-dark font-weight-bold">Smart Punch</h6>
             <p class="text-xs text-secondary mb-0">Employee Portal</p>
@@ -14,14 +22,10 @@
 
     <div class="collapse navbar-collapse w-auto h-auto pt-1" id="sidenav-collapse-main">
         <ul class="navbar-nav">
+
             {{-- Dashboard --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('dashboard') }}" style="
-                    border-radius: 6px;
-                    margin: 0 8px;
-                    transition: all 0.3s ease;
-                    color: #5e5873;
-                ">
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                     <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-chart-bar me-2 text-dark"></i>
                     </div>
@@ -31,12 +35,7 @@
 
             {{-- Attendance --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('attendance') }}" style="
-                    border-radius: 6px;
-                    margin: 0 8px;
-                    transition: all 0.3s ease;
-                    color: #5e5873;
-                ">
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('attendance') ? 'active' : '' }}" href="{{ route('attendance') }}">
                     <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-calendar-check text-dark text-sm opacity-10"></i>
                     </div>
@@ -46,12 +45,7 @@
 
             {{-- Leave Requests --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('leaves') }}" style="
-                    border-radius: 6px;
-                    margin: 0 8px;
-                    transition: all 0.3s ease;
-                    color: #5e5873;
-                ">
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('leave.index') ? 'active' : '' }}" href="{{ route('leave.index') }}">
                     <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-plane-departure text-dark text-sm opacity-10"></i>
                     </div>
@@ -59,16 +53,9 @@
                 </a>
             </li>
 
-
-
-
+            {{-- Birthdays --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('birthdays') }}" style="
-                    border-radius: 6px;
-                    margin: 0 8px;
-                    transition: all 0.3s ease;
-                    color: #5e5873;
-                ">
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('birthdays') ? 'active' : '' }}" href="{{ route('birthdays') }}">
                     <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-birthday-cake text-dark text-sm opacity-10"></i>
                     </div>
@@ -76,19 +63,9 @@
                 </a>
             </li>
 
-
-
-
-
-
-
+            {{-- Finance --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('finance') }}" style="
-                    border-radius: 6px;
-                    margin: 0 8px;
-                    transition: all 0.3s ease;
-                    color: #5e5873;
-                ">
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('finance') ? 'active' : '' }}" href="{{ route('finance') }}">
                     <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-money-bill-wave text-dark text-sm opacity-10"></i>
                     </div>
@@ -96,21 +73,10 @@
                 </a>
             </li>
 
-
-
-            
-
-
-
-            {{-- Evaluations --}}
+            {{-- Evaluations (Admins only) --}}
             @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                 <li class="nav-item mb-1">
-                    <a class="nav-link py-3" href="{{ route('evaluations') }}" style="
-                        border-radius: 6px;
-                        margin: 0 8px;
-                        transition: all 0.3s ease;
-                        color: #5e5873;
-                    ">
+                    <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('evaluations') ? 'active' : '' }}" href="{{ route('evaluations') }}">
                         <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                             <i class="fas fa-star text-dark text-sm opacity-10"></i>
                         </div>
@@ -119,15 +85,10 @@
                 </li>
             @endif
 
-            {{-- Reports --}}
+            {{-- Reports (Admins only) --}}
             @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                 <li class="nav-item mb-1">
-                    <a class="nav-link py-3" href="{{ route('reports') }}" style="
-                        border-radius: 6px;
-                        margin: 0 8px;
-                        transition: all 0.3s ease;
-                        color: #5e5873;
-                    ">
+                    <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('reports') ? 'active' : '' }}" href="{{ route('reports') }}">
                         <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
                             <i class="fas fa-file-alt text-dark text-sm opacity-10"></i>
                         </div>
@@ -138,30 +99,23 @@
 
             {{-- Profile --}}
             <li class="nav-item mb-1">
-                <a class="nav-link py-3" href="{{ route('profile') }}" style="
-                border-radius: 6px;
-                margin: 0 8px;
-                transition: all 0.3s ease;
-                color: #5e5873;
-            ">
-                <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
-                    <i class="fas fa-user text-dark text-sm opacity-10"></i>
-                </div>
-                <span class="nav-link-text ms-1">Profile</span>
-            </a>
+                <a class="nav-link py-3 nav-link-custom {{ request()->routeIs('profile.show') ? 'active' : '' }}" href="{{ route('profile.show') }}">
+                    <div class="icon icon-shape icon-sm border-radius-md bg-gray-100 text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-user text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Profile</span>
+                </a>
             </li>
+
         </ul>
     </div>
 
     <div class="sidenav-footer mx-3 pt-3 pb-4">
-    
-        
         <form method="POST" action="{{ route('logout') }}" class="mt-2">
             @csrf
             <button type="submit" class="btn w-100 d-flex align-items-center justify-content-center logout-btn">
                 <i class="fas fa-sign-out-alt me-2"></i> Logout
             </button>
         </form>
-        
     </div>
 </aside>
