@@ -164,7 +164,7 @@
             <div class="icon"><i class="fa-solid fa-clock"></i>
             </div>
             <h4><a href="" class="stretched-link">Smart Attendance Management</a></h4>
-            <p>Track employee attendance in real-time without the need for fingerprint systems, with accurate reports and analytics.</p>
+            <p>Record and manage employee attendance accurately without the need for fingerprint systems, supported by detailed reports and analytics.</p>
           </div>
         </div><!-- End Service Item -->
 
@@ -252,7 +252,7 @@
                         <img src="./assets/img/IMG/service1.png" alt="Attendance Management">
                     </div>
                     <h3>Attendance Management</h3>
-                    <a href="" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
+                    <a href="/service" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
                 </div>
 
                 <!-- Service 2 -->
@@ -261,7 +261,7 @@
                         <img src="./assets/img/IMG/service2.png" alt="Leave Management">
                     </div>
                     <h3>Leave Management</h3>
-                    <a href="" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
+                    <a href="/service" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
                 </div>
 
                 <!-- Service 3 -->
@@ -270,7 +270,7 @@
                         <img src="./assets/img/IMG/service3.png" alt="Absences Management">
                     </div>
                     <h3>Absences Management</h3>
-                    <a href="" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
+                    <a href="/service" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
                 </div>
 
                 <!-- Service 4 -->
@@ -279,7 +279,7 @@
                         <img src="./assets/img/IMG/service4.png" alt="Performance Evaluations">
                     </div>
                     <h3>Performance Evaluations</h3>
-                    <a href="" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
+                    <a href="/service" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
                 </div>
 
                 <!-- Service 5 -->
@@ -288,7 +288,7 @@
                         <img src="./assets/img/IMG/service5.png" alt="Reports">
                     </div>
                     <h3>Reports & Analytics</h3>
-                    <a href="" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
+                    <a href="/service" class="details-btn">Details <i class="bi bi-arrow-right"></i></a>
                 </div>
             </div>
         </div>

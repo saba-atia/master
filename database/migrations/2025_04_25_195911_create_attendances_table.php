@@ -13,10 +13,12 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamp('check_in')->nullable();
             $table->timestamp('check_out')->nullable();
-            $table->date('date')->nullable();
+            $table->date('date');
+            $table->string('status')->default('In Progress');
+            $table->decimal('working_hours', 5, 2)->nullable();
             $table->timestamps();
             
-            $table->unique(['user_id', 'date']); // Prevent duplicate attendance for same user on same day
+            $table->unique(['user_id', 'date']);
         });
     }
 

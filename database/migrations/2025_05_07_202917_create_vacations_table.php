@@ -11,14 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('leaves', function (Blueprint $table) {
+        Schema::create('vacations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['annual', 'sick', 'emergency', 'unpaid']);
+            $table->foreignId('department_id')->constrained()->onDelete('cascade');
+            $table->string('type')->default('annual'); // annual, sick, unpaid, etc.
             $table->date('start_date');
             $table->date('end_date');
-            $table->string('reason')->nullable();
+            $table->integer('days_taken');
+            $table->text('reason')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->foreignId('approved_by')->nullable()->constrained('users');
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }
@@ -28,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('leaves');
+        Schema::dropIfExists('vacations');
     }
 };

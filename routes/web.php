@@ -1,11 +1,16 @@
 <?php
 
+use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BirthdayController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PasswordController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\VacationController;
 use Illuminate\Support\Facades\Route;
 
 // Public Routes
@@ -29,6 +34,11 @@ Route::get('/service', function () {
     return view('home.service');
 });
 
+Route::get('/faq', function () {
+    return view('home.faq');
+});
+
+
 Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.send');
 Route::post('/request-demo', [ContactController::class, 'sendContact']);
 
@@ -49,9 +59,9 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/update', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/destroy', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::get('/change-password', [PasswordController::class, 'showChangeForm'])->name('password.change');
-        Route::put('/update-password', [PasswordController::class, 'update'])->name('password.update');
-    });
-
+        Route::put('/password/update', [PasswordController::class, 'updatePassword'])->name('password.update');    });
+        Route::post('/profile/password', [ProfileController::class, 'updatePassword'])
+        ->name('profile.password');
     // Attendance Routes
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
@@ -59,36 +69,25 @@ Route::middleware(['auth'])->group(function () {
 
     // Leaves Routes - الجديدة بدون تعارض
     Route::middleware(['auth'])->group(function () {
-        // عرض الطلبات
-        Route::get('/leaves', [LeaveController::class, 'index'])
-             ->name('leaves.index');
-    
-        // تقديم طلب جديد
-        Route::post('/leaves', [LeaveController::class, 'store'])
-             ->name('leaves.store');
-    
-        // تحديث حالة الطلب (Approve / Reject)
-        Route::put('/leaves/{id}/status', [LeaveController::class, 'updateStatus'])
-             ->name('leaves.updateStatus');
+        // مسارات إدارة الإجازات
+        Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
+        Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
+        Route::put('/leaves/{leave}', [LeaveController::class, 'update'])->name('leaves.update');
+        Route::get('/leaves/{leave}', [LeaveController::class, 'show'])->name('leaves.show');
     });
-    Route::get('/leave-requests', [LeaveController::class, 'index'])->name('leave.index');
-
     // Admin Routes
-    Route::middleware(['admin'])->group(function () {
-        // Branch Routes
-        Route::prefix('branches')->group(function () {
-            Route::get('/', [BranchController::class, 'index'])->name('branches.index');
-            Route::get('/create', [BranchController::class, 'create'])->name('branches.create');
-            Route::post('/', [BranchController::class, 'store'])->name('branches.store');
-            Route::get('/{branch}/edit', [BranchController::class, 'edit'])->name('branches.edit');
-            Route::put('/{branch}', [BranchController::class, 'update'])->name('branches.update');
-            Route::delete('/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
-            
-            // Map Routes
-            Route::get('/map', [BranchController::class, 'showMap'])->name('branches.map');
-            Route::post('/save-location', [BranchController::class, 'saveLocation'])->name('branches.save-location');
-        });
-    });
+// إدارة الفروع
+Route::prefix('branches')->group(function () {
+    Route::get('/', [BranchController::class, 'index'])->name('branches.index');
+    Route::get('/create', [BranchController::class, 'create'])->name('branches.create');
+    Route::post('/', [BranchController::class, 'store'])->name('branches.store');
+    Route::get('/{branch}/edit', [BranchController::class, 'edit'])->name('branches.edit');
+    Route::put('/{branch}', [BranchController::class, 'update'])->name('branches.update');
+    Route::delete('/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
+});
+
+// تسجيل الحضور
+Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
 
     // Dashboard Routes
     Route::prefix('dash')->group(function () {
@@ -96,8 +95,44 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/evaluations', function () { return view('dash.pages.evaluations'); })->name('evaluations');
         Route::get('/reports', function () { return view('dash.pages.reports'); })->name('reports');
         Route::get('/finance', function () { return view('dash.pages.finance'); })->name('finance');
-        Route::get('/birthdays', function () { return view('dash.pages.birthdays'); })->name('birthdays');
+        Route::get('/birthdays', function () { return view('birthdays.index'); })->name('birthdays');
+    });
+});
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // جميع روابط الإدارة هنا
+    Route::resource('employees', EmployeeController::class)->except(['show']);
+    
+    // يمكنك إضافة روابط أخرى خاصة بالإدارة
+});
+
+    
+Route::post('/validate-current-password', [PasswordController::class, 'validateCurrentPassword']);
+
+Route::middleware(['auth'])->group(function () {
+    // Finance routes
+    Route::prefix('finance')->group(function () {
+        Route::get('/', [FinanceController::class, 'index'])->name('finance.index');
+        Route::post('/transactions', [FinanceController::class, 'store'])->name('finance.transactions.store');
+        Route::get('/transactions/{transaction}/edit', [FinanceController::class, 'edit'])->name('finance.transactions.edit');
+        Route::put('/transactions/{transaction}', [FinanceController::class, 'update'])->name('finance.transactions.update');
+        Route::delete('/transactions/{transaction}', [FinanceController::class, 'destroy'])->name('finance.transactions.destroy');
     });
 });
 
-Route::post('/validate-current-password', [PasswordController::class, 'validateCurrentPassword']);
+Route::resource('vacations', VacationController::class)->middleware('auth');
+
+
+// Profile Routes
+Route::prefix('profile')->group(function () {
+    Route::get('/', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+    
+    // Password Routes
+    Route::get('/password', [PasswordController::class, 'showChangeForm'])->name('password.change');
+    Route::post('/password', [PasswordController::class, 'updatePassword'])->name('password.update');
+    
+    // Birthday Route
+    Route::get('/birthdays', [ProfileController::class, 'birthdays'])->name('birthdays.my');
+});

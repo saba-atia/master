@@ -231,17 +231,17 @@
         <span class="icon">+</span>
       </button>
       <div class="faq-answer">
-        <p>Smart Punch uses advanced geo-location technology to track employee attendance. Employees can check in/out via our mobile app which verifies their location against predefined company locations. Administrators can set acceptable radius ranges and receive alerts for suspicious check-ins.</p>
+        <p>Smart Punch provides a secure digital attendance system where employees can check in and out through our mobile app or web portal. The system records precise timestamps and supports multiple verification methods to ensure accurate attendance records.</p>
       </div>
     </div>
     
     <div class="faq-item" data-category="attendance">
       <button class="faq-question">
-        Can employees check in from multiple locations?
-        <span class="icon">+</span>
+        Can employees record attendance from different work locations?
+                        <span class="icon">+</span>
       </button>
       <div class="faq-answer">
-        <p>Yes, administrators can define multiple approved locations for each employee or department. The system supports branch-specific attendance policies and can automatically detect which location the employee is checking in from.</p>
+        <p>Yes, the system supports multiple authorized work locations. Employees can select their current work site from a list of predefined locations when recording their attendance. Administrators can manage and configure these location options through the dashboard.  </p>
       </div>
     </div>
     
@@ -375,18 +375,18 @@
         <span class="icon">+</span>
       </button>
       <div class="faq-answer">
-        <p>Yes, administrators can configure IP restrictions to limit access to specific company networks or locations for additional security.</p>
+        <p>Yes, administrators can configure IP restrictions to limit access to specific company networks for additional security.</p>
       </div>
     </div>
     
-    <!-- General Questions (appear in "All" category) -->
+    <!-- General Questions -->
     <div class="faq-item" data-category="all">
       <button class="faq-question">
         What makes Smart Punch different from other HR systems?
         <span class="icon">+</span>
       </button>
       <div class="faq-answer">
-        <p>Smart Punch combines advanced attendance tracking with comprehensive HR management in a user-friendly interface. Our geo-location technology, real-time analytics, and customizable workflows provide a complete solution tailored to modern businesses.</p>
+        <p>Smart Punch combines reliable attendance tracking with comprehensive HR management in a user-friendly interface. Our real-time analytics and customizable workflows provide a complete solution tailored to modern businesses.</p>
       </div>
     </div>
     

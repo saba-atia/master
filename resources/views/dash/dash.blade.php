@@ -22,11 +22,9 @@
   @include('dash.include.side')
   <main class="main-content position-relative border-radius-lg ">
     <!-- Navbar -->
-   @include('dash.include.nav')
     <!-- End Navbar -->
    @yield('contentdash')
   </main>
-  @include('dash.include.rightside')
   <!--   Core JS Files   -->
   @include('dash.include.footer')
 

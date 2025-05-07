@@ -12,7 +12,8 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('avatar')->nullable()->after('email');
+            $table->string('avatar')->nullable()->after('email')
+                  ->comment('Stores path relative to storage/app/public/avatars');
         });
     }
 

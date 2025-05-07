@@ -9,16 +9,15 @@ use Illuminate\Support\Facades\Validator;
 
 class PasswordController extends Controller
 {
-    // عرض نموذج تغيير كلمة المرور
     public function showChangeForm()
     {
         return view('profile.change-password');
     }
 
-    // قواعد التحقق
-    private function validationRules()
+    public function updatePassword(Request $request)
     {
-        return [
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|current_password',
             'new_password' => [
                 'required',
                 'string',
@@ -26,31 +25,9 @@ class PasswordController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/'
             ]
-        ];
-    }
-
-    // تحديث كلمة المرور
-    public function update(Request $request)
-    {
-        $validator = Validator::make($request->all(), $this->validationRules(), [
-            'new_password.regex' => 'يجب أن تحتوي كلمة المرور على حرف كبير، حرف صغير، رقم، ورمز خاص'
+        ], [
+            'new_password.regex' => 'The password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
         ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        Auth::user()->update([
-            'password' => Hash::make($request->new_password)
-        ]);
-
-        return back()->with('success', 'تم تحديث كلمة المرور بنجاح');
-    }
-
-    // تحديث كلمة المرور عبر AJAX
-    public function updatePassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), $this->validationRules());
 
         if ($validator->fails()) {
             return response()->json([
@@ -59,13 +36,21 @@ class PasswordController extends Controller
             ], 422);
         }
 
-        Auth::user()->update([
-            'password' => Hash::make($request->new_password)
-        ]);
+        try {
+            $user = Auth::user();
+            $user->password = Hash::make($request->new_password);
+            $user->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'password updated successfully'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Password has been updated successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating your password. Please try again.'
+            ], 500);
+        }
     }
 }
