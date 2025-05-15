@@ -30,5 +30,10 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manage', function ($user) {
             return $user->isAdmin(); // أو أي شرط آخر
         });
+
+        
     }
+    protected $policies = [
+    Evaluation::class => EvaluationPolicy::class,
+];
 }

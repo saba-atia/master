@@ -5,59 +5,122 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+use App\Models\Department;
+use App\Models\Branch;
+use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
     public function show()
     {
-        $user = Auth::user();
+        $user = Auth::user()->load(['department', 'branch']);
         return view('profile.show', compact('user'));
     }
 
     public function edit()
     {
         $user = Auth::user();
-        return view('profile.edit', compact('user'));
+        $departments = Department::all();
+        $branches = Branch::all();
+
+        return view('profile.edit', compact('user', 'departments', 'branches'));
     }
 
     public function update(Request $request)
     {
         $user = Auth::user();
-        
-        $validated = $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
-            'avatar' => [
-                'nullable',
-                'image',
-                'mimes:jpeg,png,jpg,gif,webp',
-                'max:2048',
-                function ($attribute, $value, $fail) {
-                    if (!str_starts_with($value->getMimeType(), 'image/')) {
-                        $fail('The file must be an image.');
-                    }
-                }
-            ],
+            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
+            'birth_date' => 'nullable|date|before_or_equal:today',
+            'department_id' => 'nullable|exists:departments,id',
+            'phone' => 'nullable|string|max:20|regex:/^[0-9\+\-\(\)\s]+$/',
+            'address' => 'nullable|string|max:500',
+            'emergency_contact' => 'nullable|string|max:500',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'branch_id' => 'nullable|exists:branches,id',
+            'remove_photo' => 'nullable|boolean',
         ], [
-            'avatar.image' => 'The file must be an image.',
-            'avatar.mimes' => 'Allowed formats: jpeg, png, jpg, gif, webp',
+            'phone.regex' => 'The phone number format is invalid.',
+            'photo.max' => 'The photo must not be greater than 2MB.',
+            'birth_date.before_or_equal' => 'The birth date must be a date before or equal to today.',
         ]);
 
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        $user->save();
+        $data = $validator->validated();
+
+        // Handle photo removal
+        if ($request->has('remove_photo') && $request->remove_photo) {
+            if ($user->photo_url && Storage::disk('public')->exists($user->photo_url)) {
+                Storage::disk('public')->delete($user->photo_url);
+            }
+            $data['photo_url'] = null;
+        }
+
+        // Handle new photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($user->photo_url && Storage::disk('public')->exists($user->photo_url)) {
+                Storage::disk('public')->delete($user->photo_url);
+            }
+
+            // Store new photo
+            $path = $request->file('photo')->store('avatars', 'public');
+            $data['photo_url'] = $path;
+        }
+
+        $user->update($data);
 
         return redirect()->route('profile.show')
-            ->with('success', 'Profile updated successfully.');
+            ->with('success', 'Profile updated successfully!');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised(),
+            ],
+        ], [
+            'password.min' => 'The password must be at least 8 characters.',
+            'password.mixed' => 'The password must contain both uppercase and lowercase letters.',
+            'password.numbers' => 'The password must contain at least one number.',
+            'password.symbols' => 'The password must contain at least one special character.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $user = Auth::user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()
+                ->withErrors(['current_password' => 'The current password is incorrect'])
+                ->withInput();
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Password updated successfully!');
     }
 }

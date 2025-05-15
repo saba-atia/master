@@ -7,19 +7,34 @@ use Carbon\Carbon;
 
 class Attendance extends Model
 {
-    protected $fillable = ['user_id', 'check_in', 'check_out', 'date'];
+    protected $fillable = [
+        'user_id',
+        'branch_id',
+        'check_in',
+        'check_out',
+        'date',
+        'status',
+        'working_hours',
+        'location'
+    ];
     
     protected $dates = ['check_in', 'check_out', 'date'];
     
-    protected $casts = [
+     protected $casts = [
+        'date' => 'date',
         'check_in' => 'datetime',
         'check_out' => 'datetime',
-        'date' => 'date'
+        'location' => 'array'
     ];
     
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
     
     public function getWorkingHoursAttribute()
@@ -42,12 +57,10 @@ class Attendance extends Model
         
         $workingHours = $this->working_hours;
         
-        // إذا أكمل 8 ساعات أو أكثر
         if ($workingHours >= 8) {
             return 'Completed';
         }
         
-        // إذا أكمل أقل من 8 ساعات
         return 'Not Completed';
     }
 }

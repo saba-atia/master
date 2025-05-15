@@ -1,37 +1,51 @@
-<!--
-=========================================================
-* Argon Dashboard 3 - v2.1.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/argon-dashboard
-* Copyright 2024 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://www.creative-tim.com/license)
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
--->
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    @include('dash.include.top')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* تنسيقات عامة لضمان العرض الصحيح */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        body.g-sidenav-show {
+            display: flex;
+            flex-direction: row;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            margin-left: 280px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+        
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
 
-@include('dash.include.top')
+<body class="g-sidenav-show bg-gray-100">
+    <!-- السايد بار -->
+    @include('dash.include.side')
 
-<body class="g-sidenav-show   bg-gray-100">
-  <div class="min-height-300 bg-dark position-absolute w-100"></div>
-  @include('dash.include.side')
-  <main class="main-content position-relative border-radius-lg ">
-    <!-- Navbar -->
-   @include('dash.include.nav')
-    <!-- End Navbar -->
-   @yield('contentdash')
-  </main>
-  @include('dash.include.rightside')
-  <!--   Core JS Files   -->
-  @include('dash.include.footer')
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content position-relative">
+        <div class="container-fluid py-4">
+            @yield('contentdash')
+        </div>
+    </main>
 
-  @include('dash.include.bottom')
-
+    @include('dash.include.bottom')
 </body>
-
 </html>

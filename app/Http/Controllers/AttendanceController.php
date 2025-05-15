@@ -3,126 +3,144 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\Branch;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
+    const MAX_DISTANCE_KM = 0.5; // 500 متر
+
     public function index()
     {
         $user = auth()->user();
-        
-        $attendances = $user->isAdminOrSuperAdmin() 
-            ? Attendance::with('user')->latest()->get()
-            : $user->attendances()->latest()->get();
-        
+        $from = request('from');
+        $to = request('to');
+
+        $query = $user->isAdminOrSuperAdmin() 
+            ? Attendance::with(['user', 'branch'])
+            : $user->attendances()->with(['branch']);
+
+        if ($from && $to) {
+            $query->whereBetween('date', [$from, $to]);
+        }
+
+        $attendances = $query->latest()->get();
+
         return view('dash.pages.attendance', compact('attendances'));
-    }
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-        $today = Carbon::today()->toDateString();
-        
-        // Check if attendance record exists for today
-        $attendance = Attendance::where('user_id', $user->id)
-            ->where('date', $today)
-            ->first();
-        
-        if (!$attendance) {
-            // Create check-in record
-            Attendance::create([
-                'user_id' => $user->id,
-                'check_in' => Carbon::now(),
-                'date' => $today,
-            ]);
-            
-            return back()->with('success', 'Check-in recorded successfully');
-        } elseif (!$attendance->check_out) {
-            // Update check-out record
-            $attendance->update([
-                'check_out' => Carbon::now(),
-            ]);
-            
-            return back()->with('success', 'Check-out recorded successfully');
-        }
-        
-        return back()->with('error', 'You have already checked in and out today');
-    }
-
-    public function registerAttendance(Request $request)
-    {
-        // التحقق من صحة البيانات المدخلة
-        $request->validate([
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'type' => 'required|in:in,out' // يمكن أن يكون نوع الحضور دخول أو خروج
-        ]);
-
-        $userLat = $request->latitude;
-        $userLng = $request->longitude;
-        $type = $request->type;
-
-        // الحصول على جميع الفروع
-        $branches = Branch::all();
-        $nearestBranch = null;
-        $minDistance = null;
-
-        foreach ($branches as $branch) {
-            // حساب المسافة بين الموظف والفرع
-            $distance = $this->calculateDistance(
-                $userLat, 
-                $userLng, 
-                $branch->latitude, 
-                $branch->longitude
-            );
-
-            // إذا كانت المسافة ضمن نصف القطر المسموح به
-            if ($distance <= $branch->attendance_radius) {
-                // إذا كان هذا الفرع أقرب أو هو الفرع الأول الذي يفي بالشرط
-                if (is_null($minDistance) || $distance < $minDistance) {
-                    $minDistance = $distance;
-                    $nearestBranch = $branch;
-                }
-            }
-        }
-
-        if ($nearestBranch) {
-            // تسجيل الحضور
-            Attendance::create([
-                'user_id' => Auth::id(),
-                'branch_id' => $nearestBranch->id,
-                'type' => $type,
-                'timestamp' => now()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم تسجيل حضورك من فرع ' . $nearestBranch->name
-            ]);
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'انت خارج نطاق أي فرع'
-        ], 400);
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
-        $earthRadius = 6371; // نصف قطر الأرض بالكيلومترات
+        $theta = $lon1 - $lon2;
+        $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) + 
+                cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+        $dist = acos($dist);
+        $dist = rad2deg($dist);
+        return $dist * 60 * 1.1515 * 1.609344; // كم
+    }
 
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
+    public function store(Request $request)
+    {
+        $user = auth()->user();
+        $today = Carbon::today()->toDateString();
 
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon / 2) * sin($dLon / 2);
+        $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
 
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        try {
+            $branch = Branch::findOrFail($request->branch_id);
 
-        $distance = $earthRadius * $c; // المسافة بالكيلومترات
+            if (is_null($branch->latitude)) {
+                throw new \Exception("إحداثيات الفرع غير مضبوطة");
+            }
 
-        return $distance * 1000; // تحويل إلى أمتار
+            $distance = $this->calculateDistance(
+                $request->latitude,
+                $request->longitude,
+                $branch->latitude,
+                $branch->longitude
+            );
+
+            Log::info('Attendance attempt', [
+                'user_id' => $user->id,
+                'distance' => $distance,
+                'user_coords' => [$request->latitude, $request->longitude],
+                'branch_coords' => [$branch->latitude, $branch->longitude]
+            ]);
+
+            $attendance = Attendance::firstOrNew([
+                'user_id' => $user->id,
+                'date' => $today
+            ]);
+
+            if (!$attendance->exists) {
+                return $this->handleCheckIn($attendance, $request, $distance);
+            } elseif (is_null($attendance->check_out)) {
+                return $this->handleCheckOut($attendance, $request, $distance);
+            }
+
+            return back()->with('info', 'لقد قمت بتسجيل الحضور والانصراف مسبقاً اليوم.');
+
+        } catch (\Exception $e) {
+            Log::error('Attendance error: '.$e->getMessage());
+            return back()->with('error', 'حدث خطأ: '.$e->getMessage());
+        }
+    }
+
+    private function handleCheckIn($attendance, $request, $distance)
+    {
+        if ($distance > self::MAX_DISTANCE_KM) {
+            throw new \Exception("يجب أن تكون داخل نطاق 500 متر من الفرع لتسجيل الحضور. المسافة الفعلية: ".round($distance, 2)." كم");
+        }
+
+        $attendance->fill([
+            'branch_id' => $request->branch_id,
+            'check_in' => Carbon::now(),
+            'status' => 'In Progress',
+            'location' => json_encode([
+                'check_in' => [
+                    'lat' => $request->latitude,
+                    'lng' => $request->longitude,
+                    'time' => Carbon::now()->toDateTimeString(),
+                    'distance' => $distance
+                ]
+            ])
+        ])->save();
+
+        return back()->with('success', 'تم تسجيل الحضور بنجاح في فرع '.$attendance->branch->name);
+    }
+
+    private function handleCheckOut($attendance, $request, $distance)
+    {
+        if ($distance > self::MAX_DISTANCE_KM) {
+            throw new \Exception("يجب أن تكون داخل نطاق 500 متر من الفرع لتسجيل الانصراف. المسافة الفعلية: ".round($distance, 2)." كم");
+        }
+
+        $locationData = json_decode($attendance->location, true);
+        $locationData['check_out'] = [
+            'lat' => $request->latitude,
+            'lng' => $request->longitude,
+            'time' => Carbon::now()->toDateTimeString(),
+            'distance' => $distance
+        ];
+
+        $attendance->update([
+            'check_out' => Carbon::now(),
+            'status' => 'Completed',
+            'working_hours' => $this->calculateWorkingHours($attendance->check_in, Carbon::now()),
+            'location' => json_encode($locationData)
+        ]);
+
+        return back()->with('success', 'تم تسجيل الانصراف بنجاح. وقت العمل: '.$attendance->working_hours.' ساعة');
+    }
+
+    private function calculateWorkingHours($checkIn, $checkOut)
+    {
+        return round(Carbon::parse($checkIn)->diffInMinutes(Carbon::parse($checkOut)) / 60, 2);
     }
 }
