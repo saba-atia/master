@@ -13,19 +13,24 @@ use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
-    public function show()
-    {
-        $user = Auth::user()->load(['department', 'branch']);
-        return view('profile.show', compact('user'));
+ public function show()
+{
+    $user = Auth::user()->load(['department']);
+    
+    // Ensure created_at has a value
+    if (!$user->created_at) {
+        $user->created_at = now();
     }
+    
+    return view('profile.show', compact('user'));
+}
 
     public function edit()
     {
         $user = Auth::user();
         $departments = Department::all();
-        $branches = Branch::all();
 
-        return view('profile.edit', compact('user', 'departments', 'branches'));
+        return view('profile.edit', compact('user', 'departments'));
     }
 
     public function update(Request $request)
@@ -41,7 +46,6 @@ class ProfileController extends Controller
             'address' => 'nullable|string|max:500',
             'emergency_contact' => 'nullable|string|max:500',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'branch_id' => 'nullable|exists:branches,id',
             'remove_photo' => 'nullable|boolean',
         ], [
             'phone.regex' => 'The phone number format is invalid.',

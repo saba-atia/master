@@ -7,13 +7,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Storage;
-// use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Evaluation;
+use App\Models\Absence;
+
 
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
     // use SoftDeletes;
+    use Notifiable, SoftDeletes;
+        protected $dates = ['deleted_at'];
+
 
     /**
      *
@@ -29,8 +35,10 @@ class User extends Authenticatable
         'photo_url',
         'emergency_contact',
         'birth_date',
-        'department_id'
+        'department_id',
+        'status',
     ];
+    
     
     protected $casts = [
         'email_verified_at' => 'datetime',
@@ -96,20 +104,13 @@ class User extends Authenticatable
     }
 
     
-    public function branch()
-    {
-        return $this->belongsTo(Branch::class);
-    }
-    
+ 
 
     public function vacations()
 {
     return $this->hasMany(Vacation::class);
 }
-public function approvedVacations()
-{
-    return $this->hasMany(Vacation::class, 'approved_by');
-}
+
 public function canApproveVacation(Vacation $vacation): bool
 {
     if ($this->isSuperAdmin()) {
@@ -143,31 +144,31 @@ public function greetings()
     return $this->hasMany(Greeting::class, 'receiver_id');
 }
 
-public function getAvatarUrlAttribute()
-{
-    if (!$this->photo) {
-        return null;
+  public function getAvatarUrlAttribute()
+    {
+        if (!$this->photo) {
+            return null;
+        }
+        
+        return Storage::disk('public')->exists($this->photo) 
+            ? Storage::url($this->photo)
+            : null;
     }
-    
-    return Storage::disk('public')->exists($this->photo) 
-        ? Storage::url($this->photo)
-        : null;
-}
 
 public static function birthdaysThisWeek()
 {
-    if (!Schema::hasColumn('users', 'birthdate')) {
+    if (!Schema::hasColumn('users', 'birth_date')) {
         return collect();
     }
 
     $start = now()->startOfWeek();
     $end = now()->endOfWeek();
     
-    return self::whereNotNull('birthdate')
-        ->whereMonth('birthdate', now()->month)
-        ->whereDay('birthdate', '>=', $start->day)
-        ->whereDay('birthdate', '<=', $end->day)
-        ->orderByRaw('DAY(birthdate)')
+    return self::whereNotNull('birth_date')
+        ->whereMonth('birth_date', now()->month)
+        ->whereDay('birth_date', '>=', $start->day)
+        ->whereDay('birth_date', '<=', $end->day)
+        ->orderByRaw('DAY(birth_date)')
         ->get();
 }
 public function isBirthdayToday()
@@ -181,7 +182,15 @@ public function birthdayWishes()
 {
     return $this->hasMany(BirthdayWish::class)->with('sender');
 }
+public function receivedWishes()
+{
+    return $this->hasMany(BirthdayWish::class, 'receiver_id');
+}
 
+public function sentWishes()
+{
+    return $this->hasMany(BirthdayWish::class, 'sender_id');
+}
 public function getAvatarColorAttribute()
 {
     $hash = md5($this->name);
@@ -214,6 +223,115 @@ public function hasRole($role)
 public function latestEvaluation()
 {
     return $this->hasOne(Evaluation::class)->latest();
+}
+
+public function currentLeave()
+{
+    return $this->hasOne(Leave::class)
+        ->where('status', 'approved')
+        ->where('start_time', '<=', now())
+        ->where('end_time', '>=', now());
+}
+ public function getAvatarUrl()
+    {
+        if (!$this->avatar_url) {
+            return asset('images/default-avatar.png');
+        }
+
+        if (str_starts_with($this->avatar_url, 'http')) {
+            return $this->avatar_url;
+        }
+
+        return asset('storage/'.$this->avatar_url);
+    }
+
+    // Add these scopes to your User model
+public function scopeActive($query)
+{
+    return $query->where('status', 'active');
+}
+
+public function scopeInactive($query)
+{
+    return $query->where('status', 'inactive');
+}
+
+public function scopePresentToday($query)
+{
+    return $query->whereHas('attendances', function($q) {
+        $q->whereDate('date', today())->whereNotNull('check_in');
+    });
+}
+
+public function scopeTodayBirthdays($query)
+{
+    return $query->whereMonth('birth_date', today()->month)
+                ->whereDay('birth_date', today()->day);
+}
+
+
+public function approvedVacations()
+{
+    return $this->hasMany(Vacation::class)->where('status', 'approved');
+}
+
+public function approvedLeaves()
+{
+    return $this->hasMany(Leave::class)->where('status', 'approved');
+}
+public function absences()
+{
+    return $this->hasMany(Absence::class);
+}
+public function absentDaysThisMonth()
+{
+    // Implement your logic to calculate absent days this month
+    // For example:
+    return $this->absences()
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->count();
+}
+
+protected function getAdminStats(User $user, array $filters = [])
+{
+    $userQuery = User::when(!empty($filters), function($q) use ($filters) {
+        $q->where($filters);
+    });
+
+    return [
+        'employees' => [
+            'total' => $userQuery->count(),
+            'active' => $userQuery->where('status', 'active')->count(),
+            'inactive' => User::onlyTrashed()
+                ->when(!empty($filters), function($q) use ($filters) {
+                    $q->where($filters);
+                })->count()
+        ],
+        'attendance' => [
+            'present' => $this->getPresentTodayCount($filters),
+            'absent' => $this->getAbsentTodayCount($filters),
+            'late' => $this->getLateTodayCount($filters)
+        ],
+        'vacations' => $this->getVacationStats($filters),
+        'leave' => $this->getLeaveStats($filters),
+        'absences' => $this->getAbsenceStats($filters)
+    ];
+}
+
+public function latestAttendance()
+{
+    return $this->hasOne(Attendance::class)->latestOfMany();
+}
+protected function getDepartmentData($departmentId)
+{
+    return [
+        'attendance' => [
+            'monthly' => $this->getMonthlyAttendanceStats($departmentId),
+            'today' => $this->getTodayAttendanceStats($departmentId)
+        ],
+        'leave_types' => $this->getDepartmentLeaveTypes($departmentId)
+    ];
 }
 }
 

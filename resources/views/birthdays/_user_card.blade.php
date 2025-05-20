@@ -2,17 +2,26 @@
 <div class="birthday-card {{ $today ? 'today' : '' }}">
     <div class="card-decoration"></div>
     
-   <div class="user-avatar">
-    @if($user->photo && Storage::disk('public')->exists($user->photo))
-        <img src="{{ Storage::url($user->photo) }}" 
-             alt="{{ $user->name }}" 
-             class="avatar-image"
-             onerror="this.onerror=null;this.src='{{ asset('images/default-avatar.png') }}'">
-    @else
-        <div class="avatar-initials">
-            {{ substr($user->name, 0, 1) }}
-        </div>
-    @endif
+<div class="user-avatar">
+    @php
+        $avatarUrl = asset('images/default-avatar.png');
+        
+        if ($user->profile_photo_path) {
+            try {
+                $storagePath = 'public/' . $user->profile_photo_path;
+                if (Storage::exists($storagePath)) {
+                    $avatarUrl = Storage::url($user->profile_photo_path);
+                }
+            } catch (\Exception $e) {
+                \Log::error("Failed to load avatar: " . $e->getMessage());
+            }
+        }
+    @endphp
+
+    <img src="{{ $avatarUrl }}" 
+         alt="{{ $user->name }}" 
+         class="avatar-image"
+         onerror="this.onerror=null;this.src='{{ asset('images/default-avatar.png') }}'">
 </div>
     
     <div class="user-details">
@@ -687,6 +696,25 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.display = 'none';
             const initials = this.closest('.user-avatar').querySelector('.avatar-initials');
             if (initials) initials.style.display = 'flex';
+        };
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.avatar-image').forEach(img => {
+        // تحقق من الصورة بعد تحميل الصفحة
+        setTimeout(() => {
+            if (img.naturalWidth === 0) {
+                img.src = '{{ asset("images/default-avatar.png") }}';
+                console.log('Fallback to default avatar for:', img.alt);
+            }
+        }, 500);
+        
+        img.onerror = function() {
+            this.src = '{{ asset("images/default-avatar.png") }}';
+            console.error('Image load failed:', this.alt, 'Original src:', this.src);
         };
     });
 });

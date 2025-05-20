@@ -10,30 +10,39 @@ use PDF;
 use Excel;
 use App\Exports\EvaluationsExport;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class EvaluationController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin,super admin');
+        $this->middleware('role:admin,super_admin,department_manager');
     }
 
     public function index()
     {
+        $this->authorize('viewAny', Evaluation::class);
+        
         $evaluations = Evaluation::with(['user', 'user.attendances' => function($query) {
-            $query->whereMonth('date', now()->month);
-        }])
-        ->when(request('search'), function($query) {
-            $query->whereHas('user', function($q) {
-                $q->where('name', 'like', '%'.request('search').'%');
-            });
-        })
-        ->when(request('date'), function($query) {
-            $query->whereDate('evaluation_date', request('date'));
-        })
-        ->latest()
-        ->paginate(10);
+                $query->whereMonth('date', now()->month);
+            }])
+            ->when(request('search'), function($query) {
+                $query->whereHas('user', function($q) {
+                    $q->where('name', 'like', '%'.request('search').'%');
+                });
+            })
+            ->when(request('date'), function($query) {
+                $query->whereDate('evaluation_date', request('date'));
+            })
+            ->when(auth()->user()->hasRole('department_manager'), function($query) {
+                $query->whereHas('user', function($q) {
+                    $q->where('department_id', auth()->user()->department_id)
+                      ->orWhere('id', auth()->user()->id);
+                });
+            })
+            ->latest()
+            ->paginate(10);
 
         return view('evaluations.index', compact('evaluations'));
     }
@@ -42,9 +51,14 @@ class EvaluationController extends Controller
     {
         $this->authorize('create', Evaluation::class);
         
-        $users = User::with(['attendances' => function($query) {
-            $query->whereMonth('date', now()->month);
-        }])->get();
+        $users = User::when(auth()->user()->hasRole('department_manager'), function($query) {
+                $query->where('department_id', auth()->user()->department_id)
+                      ->orWhere('id', auth()->user()->id);
+            })
+            ->with(['attendances' => function($query) {
+                $query->whereMonth('date', now()->month);
+            }])
+            ->get();
         
         return view('evaluations.create', compact('users'));
     }
@@ -91,7 +105,12 @@ class EvaluationController extends Controller
     {
         $this->authorize('update', $evaluation);
         
-        $users = User::all();
+        $users = User::when(auth()->user()->hasRole('department_manager'), function($query) {
+                $query->where('department_id', auth()->user()->department_id)
+                      ->orWhere('id', auth()->user()->id);
+            })
+            ->get();
+            
         $attendances = $evaluation->user->attendances()
             ->whereBetween('date', [
                 $evaluation->evaluation_date->startOfMonth(),
@@ -157,18 +176,5 @@ class EvaluationController extends Controller
 
         return 5; // القيمة الافتراضية إذا لم توجد سجلات
     }
-
-    private function calculatePunctuality($userId) {
-    $attendanceRecords = Attendance::where('user_id', $userId)
-        ->whereMonth('date', now()->month)
-        ->get();
     
-    $totalDays = $attendanceRecords->count();
-    $onTimeDays = $attendanceRecords->filter(fn($record) => 
-        $record->status == 'present' && 
-        $record->arrival_time <= $record->shift->start_time
-    )->count();
-
-    return ($totalDays > 0) ? round(($onTimeDays / $totalDays) * 10) : 0;
-}
 }

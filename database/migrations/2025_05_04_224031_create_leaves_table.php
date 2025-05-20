@@ -19,7 +19,7 @@ return new class extends Migration
             $table->dateTime('end_time');
             $table->text('reason')->nullable();
             $table->decimal('duration_hours', 8, 2)->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'department_approved', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });
     }

@@ -1,5 +1,5 @@
 @extends('dash.dash')
-
+@section('title', 'Employee Management')
 @section('contentdash')
 <div class="container py-4">
     <div class="card shadow-sm">

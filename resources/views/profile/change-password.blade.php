@@ -21,11 +21,8 @@
                     @if (session('success'))
                         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle mr-2"></i>
                                 <span>{{ session('success') }}</span>
-                                <button type="button" class="close ml-auto" data-dismiss="alert" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
+                              
                             </div>
                         </div>
                     @endif
@@ -39,9 +36,7 @@
                                     <li>{{ $error }}</li>
                                 @endforeach
                             </ul>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                           
                         </div>
                     @endif
 

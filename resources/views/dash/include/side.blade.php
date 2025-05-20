@@ -31,34 +31,33 @@
                 </a>
             </li>
 
-           <!-- Leave & Vacation Dropdown -->
-<li class="nav-item">
-    <div class="dropdown">
-        <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['leaves.*', 'vacations.*']) ? 'active' : '' }}">
-            <div class="nav-icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <span>Leave & Vacation</span>
-        </a>
-        <ul class="dropdown-menu {{ request()->routeIs(['leaves.*', 'vacations.*']) ? 'show' : '' }}">
-            <li>
-                <a href="{{ route('leaves.index') }}" class="dropdown-item {{ request()->routeIs('leaves.*') ? 'active' : '' }}">
-                    <i class="fas fa-sign-out-alt"></i> Leave Requests
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('vacations.index') }}" class="dropdown-item {{ request()->routeIs('vacations.*') ? 'active' : '' }}">
-                    <i class="fas fa-umbrella-beach"></i> Vacation
-                </a>
-            </li>
-        </ul>
-    </div>
-</li>
+            <!-- Leave & Vacation Dropdown -->
+            <li class="nav-item">
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['leaves.*', 'vacations.*']) ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <span>Leave & Vacation</span>
+                    </a>
+                    <ul class="dropdown-menu {{ request()->routeIs(['leaves.*', 'vacations.*']) ? 'show' : '' }}">
+                        <li>
+                            <a href="{{ route('leaves.index') }}" class="dropdown-item {{ request()->routeIs('leaves.*') ? 'active' : '' }}">
+                                <i class="fas fa-sign-out-alt"></i> Leave Requests
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('vacations.index') }}" class="dropdown-item {{ request()->routeIs('vacations.*') ? 'active' : '' }}">
+                                <i class="fas fa-umbrella-beach"></i> Vacation
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
 
             <!-- Birthdays -->
             <li class="nav-item">
-                <a href="{{ route('birthdays') }}" class="nav-link {{ request()->routeIs('birthdays') ? 'active' : '' }}">
+                <a href="{{ route('birthdays.index') }}" class="nav-link {{ request()->routeIs('birthdays.*') ? 'active' : '' }}">
                     <div class="nav-icon">
                         <i class="fas fa-birthday-cake"></i>
                     </div>
@@ -66,55 +65,73 @@
                 </a>
             </li>
 
-            <!-- Finance -->
-            {{-- <li class="nav-item">
-                <a href="{{ route('finance.index') }}" class="nav-link {{ request()->routeIs('finance.index') ? 'active' : '' }}">
-                    <div class="nav-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <span>Finance</span>
-                </a>
-            </li> --}}
+            <!-- Admin Section -->
+            @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin()))
+            <li class="nav-item">
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['admin.*', 'evaluations.*', 'reports.*']) ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span>Admin Panel</span>
+                        <span class="admin-badge {{ auth()->user()->isSuperAdmin() ? 'super-admin' : '' }}">
+                            {{ auth()->user()->isSuperAdmin() ? 'SUPER ADMIN' : 'ADMIN' }}
+                        </span>
+                    </a>
+                    <ul class="dropdown-menu {{ request()->routeIs(['admin.*', 'evaluations.*', 'reports.*']) ? 'show' : '' }}">
+                        <!-- Employee Management -->
+                        <li>
+                            <a href="{{ route('admin.employees.index') }}" class="dropdown-item {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+                                <i class="fas fa-users-cog"></i> Employee Management
+                            </a>
+                        </li>
+                        
+                        <!-- Evaluations (for Super Admin only) -->
+                        @if(auth()->user()->isSuperAdmin())
+                        <li>
+                            <a href="{{ route('evaluations.index') }}" class="dropdown-item {{ request()->routeIs('evaluations.*') ? 'active' : '' }}">
+                                <i class="fas fa-star"></i> Employee Evaluations
+                            </a>
+                        </li>
+                        @endif
+                        
+                        <!-- Reports -->
+                        <li>
+                            <a href="{{ route('reports.index') }}" class="dropdown-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            @endif
 
-   <!-- Admin Section (Conditional) -->
-@if(auth()->user()->can('viewAny', App\Models\Evaluation::class))
-<li class="nav-item">
-    <div class="dropdown">
-        <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['admin.*', 'evaluations.*']) ? 'active' : '' }}">
-            <div class="nav-icon">
-                <i class="fas fa-user-shield"></i>
-            </div>
-            <span>Admin</span>
-            <span class="admin-badge">ADMIN</span>
-        </a>
-        <ul class="dropdown-menu {{ request()->routeIs(['admin.*', 'evaluations.*']) ? 'show' : '' }}">
-            @can('manage-users')
-            <li>
-                <a href="{{ route('admin.users.index') }}" class="dropdown-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                    <i class="fas fa-users-cog"></i> User Management
-                </a>
+            <!-- Department Manager Section -->
+            @if(auth()->check() && auth()->user()->isDepartmentManager())
+            <li class="nav-item">
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['department.*']) ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span>Department</span>
+                        <span class="admin-badge manager">MANAGER</span>
+                    </a>
+                    <ul class="dropdown-menu {{ request()->routeIs(['department.*']) ? 'show' : '' }}">
+                        <li>
+                            <a href="{{ route('department.employees') }}" class="dropdown-item {{ request()->routeIs('department.employees') ? 'active' : '' }}">
+                                <i class="fas fa-users"></i> My Team
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('department.leaves') }}" class="dropdown-item {{ request()->routeIs('department.leaves') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-check"></i> Leave Approvals
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
-            @endcan
-            
-            @can('viewAny', App\Models\Evaluation::class)
-            <li>
-                <a href="{{ route('evaluations.index') }}" class="dropdown-item {{ request()->routeIs('evaluations.*') ? 'active' : '' }}">
-                    <i class="fas fa-star"></i> Performance Evaluations
-                </a>
-            </li>
-            @endcan
-            
-            @can('view-reports')
-            <li>
-                <a href="{{ route('reports.index') }}" class="dropdown-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-bar"></i> Reports
-                </a>
-            </li>
-            @endcan
-        </ul>
-    </div>
-</li>
-@endif
+            @endif
 
             <!-- Profile -->
             <li class="nav-item">
@@ -147,10 +164,10 @@
 <style>
     /* Sidebar Base Styles */
     .sidebar {
-        width: 280px;
+        width: 260px;
         height: 100vh;
-        background: #ffffff;
-        box-shadow: 0 4px 24px 0 rgba(34, 41, 47, 0.1);
+        background: #f8f9fa;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
         display: flex;
         flex-direction: column;
         position: fixed;
@@ -158,7 +175,6 @@
         top: 0;
         z-index: 1030;
         transition: all 0.3s ease;
-        border-right: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     /* Sidebar Header */
@@ -178,13 +194,13 @@
     .logo-icon {
         width: 40px;
         height: 40px;
-        background: #ea9413;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-right: 0.75rem;
-        box-shadow: 0 3px 10px rgba(115, 103, 240, 0.3);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .logo-icon i {
@@ -193,15 +209,15 @@
     }
 
     .logo-text {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         font-weight: 700;
-        color: #0c0094;
+        color: #2d3748;
         letter-spacing: 0.5px;
     }
 
     .sidebar-subtitle {
         font-size: 0.8rem;
-        color: #82868b;
+        color: #718096;
         margin-top: 0.25rem;
     }
 
@@ -237,47 +253,46 @@
     .nav-link {
         display: flex;
         align-items: center;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        color: #82868b;
+        padding: 0.65rem 1rem;
+        border-radius: 6px;
+        color: #4a5568;
         text-decoration: none;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 500;
-        transition: all 0.3s ease;
-        position: relative;
+        transition: all 0.2s ease;
     }
 
     .nav-link:hover {
-        background-color: rgba(17, 17, 26, 0.12);
-        color: #1200d5;
-        transform: translateX(5px);
+        background-color: rgba(102, 126, 234, 0.1);
+        color: #667eea;
     }
 
     .nav-link.active {
-        background-color: rgba(0, 0, 0, 0.12);
-        color: #181722;
+        background-color: rgba(102, 126, 234, 0.15);
+        color: #667eea;
+        border-left: 3px solid #667eea;
         font-weight: 600;
     }
 
     .nav-icon {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 6px;
         margin-right: 0.75rem;
-        background-color: rgba(94, 88, 115, 0.08);
-        transition: all 0.3s ease;
+        background-color: transparent;
+        transition: all 0.2s ease;
     }
 
     .nav-link:hover .nav-icon,
     .nav-link.active .nav-icon {
-        background-color: rgba(115, 103, 240, 0.12);
+        background-color: rgba(102, 126, 234, 0.1);
     }
 
     .nav-icon i {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     /* Dropdown Styles */
@@ -290,22 +305,26 @@
         padding-right: 2.5rem;
     }
 
-    .dropdown-arrow {
+    .dropdown-toggle::after {
+        content: '\f078';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
         position: absolute;
         right: 1rem;
         top: 50%;
         transform: translateY(-50%);
         font-size: 0.7rem;
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease;
     }
 
-    .dropdown-toggle.show .dropdown-arrow {
+    .dropdown-toggle.show::after {
         transform: translateY(-50%) rotate(180deg);
     }
 
     .dropdown-menu {
         list-style: none;
-        padding-left: 1.5rem;
+        padding-left: 0.5rem;
+        margin-top: 0.25rem;
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease;
@@ -313,51 +332,61 @@
 
     .dropdown-menu.show {
         max-height: 500px;
-        padding: 0.5rem 0 0.5rem 1.5rem;
+        padding: 0.25rem 0 0.25rem 0.5rem;
     }
 
     .dropdown-item {
-        padding: 0.5rem 1rem;
-        color: #82868b;
+        padding: 0.4rem 0.8rem;
+        color: #4a5568;
         text-decoration: none;
         display: flex;
         align-items: center;
-        font-size: 0.9rem;
-        border-radius: 6px;
-        transition: all 0.3s ease;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
     }
 
     .dropdown-item:hover {
-        color: #11101e;
-        background-color: rgba(115, 103, 240, 0.08);
+        color: #667eea;
+        background-color: rgba(102, 126, 234, 0.08);
     }
 
     .dropdown-item i {
         margin-right: 0.75rem;
-        font-size: 0.85rem;
-        width: 20px;
+        font-size: 0.8rem;
+        width: 18px;
         text-align: center;
     }
 
     .dropdown-item.active {
-        color: whitesmoke;
+        color: #667eea;
         font-weight: 500;
+        background-color: rgba(102, 126, 234, 0.1);
     }
 
     /* Admin Badge */
     .admin-badge {
-        background-color: #ff9f43;
+        background-color: #667eea;
         color: white;
-        font-size: 0.6rem;
-        padding: 0.15rem 0.4rem;
+        font-size: 0.55rem;
+        padding: 0.1rem 0.35rem;
         border-radius: 10px;
         margin-left: auto;
         font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .admin-badge.super-admin {
+        background-color: #764ba2;
+    }
+
+    .admin-badge.manager {
+        background-color: #38a169;
     }
 
     /* Sidebar Footer */
     .sidebar-footer {
-        padding: 1.5rem;
+        padding: 1rem;
         border-top: 1px solid rgba(0, 0, 0, 0.05);
     }
 
@@ -366,21 +395,20 @@
         align-items: center;
         justify-content: center;
         width: 100%;
-        padding: 0.75rem;
-        border-radius: 8px;
-        background-color: transparent;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        color: #82868b;
-        font-size: 0.95rem;
+        padding: 0.65rem;
+        border-radius: 6px;
+        background-color: #f1f5f9;
+        border: none;
+        color: #4a5568;
+        font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
 
     .logout-btn:hover {
-        background-color: rgba(8, 18, 108, 0.08);
-        color: #1c0f0f;
-        border-color: rgba(84, 147, 234, 0.2);
+        background-color: #e2e8f0;
+        color: #2d3748;
     }
 
     .logout-btn i {
@@ -394,7 +422,7 @@
         top: 15px;
         left: 15px;
         z-index: 1040;
-        background: #0a0169;
+        background: #667eea;
         color: white;
         border: none;
         border-radius: 50%;
@@ -403,7 +431,20 @@
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    /* Overlay for mobile */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1029;
+        display: none;
     }
 
     /* Responsive Styles */
@@ -414,43 +455,49 @@
         
         .sidebar.active {
             transform: translateX(0);
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
         }
         
         .mobile-menu-btn {
             display: flex;
         }
+        
+        .mobile-menu-btn.active {
+            transform: rotate(90deg);
+        }
+        
+        .sidebar-overlay {
+            display: block;
+        }
     }
 </style>
 
 <script>
-   document.addEventListener('DOMContentLoaded', function() {
-    // Dropdown functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Improved dropdown functionality
     const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
     
     dropdownToggles.forEach(toggle => {
         toggle.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation(); // إضافة هذه السطر لمنع انتشار الحدث
+            e.stopPropagation();
             
-            const dropdown = this.closest('.dropdown'); // استخدام closest بدلاً من parentElement
-            const menu = dropdown.querySelector('.dropdown-menu');
+            const parentItem = this.closest('.nav-item');
+            const menu = this.nextElementSibling;
             
-            // Close all other dropdowns first
+            // Close all other dropdowns except the current one
             document.querySelectorAll('.dropdown-menu').forEach(m => {
                 if (m !== menu) {
                     m.classList.remove('show');
-                    const otherToggle = m.closest('.dropdown').querySelector('.dropdown-toggle');
-                    otherToggle.classList.remove('show');
-                    const otherArrow = otherToggle.querySelector('.dropdown-arrow');
-                    if (otherArrow) otherArrow.classList.remove('show');
+                    m.previousElementSibling.classList.remove('show');
+                    m.closest('.nav-item').classList.remove('dropdown-open');
                 }
             });
             
             // Toggle current dropdown
             this.classList.toggle('show');
             menu.classList.toggle('show');
-            const arrow = this.querySelector('.dropdown-arrow');
-            if (arrow) arrow.classList.toggle('show');
+            parentItem.classList.toggle('dropdown-open');
         });
     });
     
@@ -459,10 +506,8 @@
         if (!e.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                 menu.classList.remove('show');
-                const toggle = menu.closest('.dropdown').querySelector('.dropdown-toggle');
-                toggle.classList.remove('show');
-                const arrow = toggle.querySelector('.dropdown-arrow');
-                if (arrow) arrow.classList.remove('show');
+                menu.previousElementSibling.classList.remove('show');
+                menu.closest('.nav-item').classList.remove('dropdown-open');
             });
         }
     });
@@ -473,31 +518,43 @@
     
     if (mobileMenuBtn && sidebar) {
         mobileMenuBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
             sidebar.classList.toggle('active');
+            
+            // Add overlay when sidebar is open
+            if (sidebar.classList.contains('active')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    mobileMenuBtn.classList.remove('active');
+                    this.remove();
+                });
+                document.body.appendChild(overlay);
+            } else {
+                document.querySelector('.sidebar-overlay')?.remove();
+            }
         });
     }
     
-    // Set active dropdown if child is active
+    // Auto set active dropdowns based on current route
     document.querySelectorAll('.dropdown-item.active').forEach(item => {
         const dropdown = item.closest('.dropdown');
         if (dropdown) {
             const toggle = dropdown.querySelector('.dropdown-toggle');
             const menu = dropdown.querySelector('.dropdown-menu');
-            const arrow = toggle.querySelector('.dropdown-arrow');
             
             toggle.classList.add('show');
             menu.classList.add('show');
-            if (arrow) arrow.classList.add('show');
+            dropdown.closest('.nav-item').classList.add('dropdown-open');
         }
     });
     
-    // Perfect Scrollbar initialization
-    if (typeof PerfectScrollbar !== 'undefined') {
-        const ps = new PerfectScrollbar('.nav-container', {
-            wheelSpeed: 2,
-            wheelPropagation: true,
-            minScrollbarLength: 20
+    // Fix for birthday link click issue
+    document.querySelectorAll('.nav-link[href*="birthdays"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
-    }
+    });
 });
 </script>

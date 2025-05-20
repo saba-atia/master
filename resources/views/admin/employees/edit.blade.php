@@ -1,83 +1,92 @@
 @extends('dash.dash')
-
+@section('title', 'Employee Management')
 @section('contentdash')
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Employee Management</h1>
-        
-        @if(in_array(auth()->user()->role, ['super_admin', 'admin']))
-            <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add New Employee
-            </a>
-        @endif
-    </div>
-    
-    @if(session('generated_password'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('generated_password') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    
     <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h2 class="mb-0">Edit Employee</h2>
+        </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Department</th>
-                            <th>Role</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($employees as $employee)
-                            <tr>
-                                <td>{{ $employee->name }}</td>
-                                <td>{{ $employee->email }}</td>
-                                <td>{{ $employee->department->name ?? 'N/A' }}</td>
-                                <td>
-                                    <span class="badge 
-                                        @if($employee->role === 'super_admin') bg-danger
-                                        @elseif($employee->role === 'admin') bg-warning
-                                        @elseif($employee->role === 'department_manager') bg-info
-                                        @else bg-secondary
-                                        @endif">
-                                        {{ ucfirst(str_replace('_', ' ', $employee->role)) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        @if(auth()->user()->role === 'super_admin' || 
-                                            (auth()->user()->role === 'admin' && $employee->role !== 'super_admin') ||
-                                            (auth()->user()->role === 'department_manager' && $employee->department_id === auth()->user()->department_id))
-                                            <a href="{{ route('admin.employees.edit', $employee->id) }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        @endif
-                                        
-                                        @if(auth()->user()->role === 'super_admin' || 
-                                            (auth()->user()->role === 'admin' && !in_array($employee->role, ['super_admin', 'admin'])) ||
-                                            (auth()->user()->role === 'department_manager' && $employee->department_id === auth()->user()->department_id))
-                                            <form action="{{ route('admin.employees.destroy', $employee->id) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                        onclick="return confirm('Are you sure?')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            <form action="{{ route('admin.employees.update', $employee->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" name="name" id="name" 
+                               class="form-control @error('name') is-invalid @enderror" 
+                               value="{{ old('name', $employee->name) }}" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" name="email" id="email" 
+                               class="form-control @error('email') is-invalid @enderror" 
+                               value="{{ old('email', $employee->email) }}" required>
+                        @error('email')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="department_id" class="form-label">Department</label>
+                        <select name="department_id" id="department_id" 
+                                class="form-control @error('department_id') is-invalid @enderror" required>
+                            <option value="">Select Department</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department->id }}" 
+                                    {{ old('department_id', $employee->department_id) == $department->id ? 'selected' : '' }}>
+                                    {{ $department->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('department_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select name="role" id="role" 
+                                class="form-control @error('role') is-invalid @enderror" required>
+                            @foreach($roles as $role)
+                                <option value="{{ $role }}" 
+                                    {{ old('role', $employee->role) == $role ? 'selected' : '' }}>
+                                    {{ ucfirst(str_replace('_', ' ', $role)) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('role')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password (Leave blank to keep current)</label>
+                    <input type="password" name="password" id="password" 
+                           class="form-control @error('password') is-invalid @enderror">
+                    @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password_confirmation" class="form-label">Confirm Password</label>
+                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ route('admin.employees.index') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Update Employee</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

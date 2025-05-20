@@ -11,4 +11,5 @@ use App\Http\Controllers\ReportController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::get('/attendance', [AttendanceController::class, 'getAttendanceApi']);
 });

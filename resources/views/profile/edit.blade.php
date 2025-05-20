@@ -167,29 +167,20 @@
                             
                             <div class="col-md-6">
                                 <div class="form-group mb-4">
-                                    <label for="branch_id" class="form-label">Branch</label>
-                                    <select id="branch_id" name="branch_id" class="form-control select2 @error('branch_id') is-invalid @enderror">
-                                        <option value="">Select Branch</option>
-                                        @foreach($branches as $branch)
-                                            <option value="{{ $branch->id }}" 
-                                                {{ old('branch_id', $user->branch_id) == $branch->id ? 'selected' : '' }}>
-                                                {{ $branch->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('branch_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    <label for="address" class="form-label">Address</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                        </div>
+                                        <input type="text" id="address" name="address" 
+                                               class="form-control @error('address') is-invalid @enderror" 
+                                               value="{{ old('address', $user->address) }}">
+                                        @error('address')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="form-group mb-4">
-                            <label for="address" class="form-label">Address</label>
-                            <textarea id="address" name="address" class="form-control @error('address') is-invalid @enderror" rows="3">{{ old('address', $user->address) }}</textarea>
-                            @error('address')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
                         </div>
                         
                         <div class="form-group mb-4">

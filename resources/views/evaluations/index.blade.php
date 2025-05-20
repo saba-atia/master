@@ -33,7 +33,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Evaluation Records</h5>
-            @can('email-evaluations')
+            @can('emailEvaluations', App\Models\Evaluation::class)
             <div class="btn-group">
                 <button class="btn btn-secondary btn-sm" onclick="emailEvaluations()">
                     <i class="fas fa-envelope"></i> Email

@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <style>
         :root {
             --primary-color: #7367f0;

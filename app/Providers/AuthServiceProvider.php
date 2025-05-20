@@ -27,13 +27,17 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
     
-        Gate::define('manage', function ($user) {
-            return $user->isAdmin(); // أو أي شرط آخر
-        });
+        Gate::define('manage-users', function ($user) {
+    return in_array($user->role, ['super_admin', 'admin']);
+});
+
+Gate::define('view-reports', function ($user) {
+    return in_array($user->role, ['super_admin', 'admin', 'department_manager']);
+});
 
         
     }
-    protected $policies = [
+ protected $policies = [
     Evaluation::class => EvaluationPolicy::class,
 ];
 }

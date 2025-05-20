@@ -3,144 +3,203 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
-use App\Models\Branch;
+use App\Models\User;
+use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AttendanceController extends Controller
 {
-    const MAX_DISTANCE_KM = 0.5; // 500 متر
-
+    /**
+     * عرض سجلات الحضور
+     */
     public function index()
     {
         $user = auth()->user();
         $from = request('from');
         $to = request('to');
+        $department_id = request('department_id');
 
+        // استعلام الحضور (للموظف أو للمدير/المشرف)
         $query = $user->isAdminOrSuperAdmin() 
-            ? Attendance::with(['user', 'branch'])
-            : $user->attendances()->with(['branch']);
+            ? Attendance::with(['user', 'user.department'])
+            : $user->attendances()->with(['user.department']);
 
+        // تطبيق الفلترة حسب التاريخ
         if ($from && $to) {
             $query->whereBetween('date', [$from, $to]);
         }
 
-        $attendances = $query->latest()->get();
+        // فلترة حسب القسم (للمديرين فقط)
+        if ($department_id && $user->isAdminOrSuperAdmin()) {
+            $query->whereHas('user', function ($q) use ($department_id) {
+                $q->where('department_id', $department_id);
+            });
+        }
 
-        return view('dash.pages.attendance', compact('attendances'));
+        $attendances = $query->orderBy('date', 'desc')->get();
+
+        // الموظفين الغائبين (للمديرين فقط)
+        $absentEmployees = [];
+        if ($user->isAdminOrSuperAdmin()) {
+            $absentQuery = User::whereDoesntHave('attendances', function ($q) use ($from, $to) {
+                if ($from && $to) {
+                    $q->whereBetween('date', [$from, $to]);
+                } else {
+                    $q->whereDate('date', today());
+                }
+            });
+
+            if ($department_id) {
+                $absentQuery->where('department_id', $department_id);
+            }
+
+            $absentEmployees = $absentQuery->get();
+        }
+
+        return view('dash.pages.attendance', compact('attendances', 'absentEmployees'));
     }
 
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $theta = $lon1 - $lon2;
-        $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) + 
-                cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
-        $dist = acos($dist);
-        $dist = rad2deg($dist);
-        return $dist * 60 * 1.1515 * 1.609344; // كم
-    }
-
+    /**
+     * تسجيل الحضور/الانصراف
+     */
     public function store(Request $request)
-    {
-        $user = auth()->user();
-        $today = Carbon::today()->toDateString();
+{
+    $user = Auth::user();
+    $today = Carbon::today();
+    $requiredHours = 8; // عدد الساعات المطلوبة يومياً
 
+    try {
+        // البحث عن سجل الحضور لهذا اليوم أو إنشاء جديد
+        $attendance = Attendance::firstOrNew([
+            'user_id' => $user->id,
+            'date' => $today
+        ]);
+
+        if (!$attendance->exists) {
+            // تسجيل الحضور (Check-in)
+            $attendance->fill([
+                'check_in' => Carbon::now(),
+                'status' => 'In Progress'
+            ])->save();
+
+            return back()->with('success', '✅ تم تسجيل الحضور بنجاح | ' . now()->format('h:i A'));
+
+        } elseif (!$attendance->check_out) {
+            // تسجيل الانصراف (Check-out)
+            $checkOutTime = Carbon::now();
+            
+            // حساب ساعات العمل بدقة
+            $workingHours = $this->calculateWorkingHours($attendance->check_in, $checkOutTime);
+            
+            // تحديث سجل الحضور
+            $attendance->update([
+                'check_out' => $checkOutTime,
+                'working_hours' => $workingHours,
+                'status' => $workingHours >= $requiredHours ? 'Completed' : 'Incomplete'
+            ]);
+
+            // رسالة مختلفة حسب حالة إكمال الساعات
+            if ($workingHours >= $requiredHours) {
+                $message = '✅ تم تسجيل الانصراف | يوم عمل مكتمل (' . number_format($workingHours, 2) . ' ساعة)';
+                $alertType = 'success';
+            } else {
+                $message = '⚠️ تم تسجيل الانصراف | يوم عمل غير مكتمل (' . number_format($workingHours, 2) . ' ساعة)';
+                $alertType = 'warning';
+            }
+
+            return back()->with($alertType, $message);
+
+        } else {
+            return back()->with('info', 'ℹ️ لقد سجلت الحضور والانصراف مسبقاً لهذا اليوم');
+        }
+
+    } catch (\Exception $e) {
+        Log::error('Attendance Error: ' . $e->getMessage());
+        return back()->with('error', '❌ حدث خطأ: ' . $e->getMessage());
+    }
+}
+
+    /**
+     * تحديث الصورة الشخصية
+     */
+    public function updateAvatar(Request $request)
+    {
         $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
+            'avatar' => 'required|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         try {
-            $branch = Branch::findOrFail($request->branch_id);
-
-            if (is_null($branch->latitude)) {
-                throw new \Exception("إحداثيات الفرع غير مضبوطة");
+            $user = auth()->user();
+            $path = $request->file('avatar')->store('users/avatars', 'public');
+            
+            // حذف الصورة القديمة إذا كانت موجودة
+            if ($user->photo_url && Storage::disk('public')->exists($user->photo_url)) {
+                Storage::disk('public')->delete($user->photo_url);
             }
 
-            $distance = $this->calculateDistance(
-                $request->latitude,
-                $request->longitude,
-                $branch->latitude,
-                $branch->longitude
-            );
-
-            Log::info('Attendance attempt', [
-                'user_id' => $user->id,
-                'distance' => $distance,
-                'user_coords' => [$request->latitude, $request->longitude],
-                'branch_coords' => [$branch->latitude, $branch->longitude]
-            ]);
-
-            $attendance = Attendance::firstOrNew([
-                'user_id' => $user->id,
-                'date' => $today
-            ]);
-
-            if (!$attendance->exists) {
-                return $this->handleCheckIn($attendance, $request, $distance);
-            } elseif (is_null($attendance->check_out)) {
-                return $this->handleCheckOut($attendance, $request, $distance);
-            }
-
-            return back()->with('info', 'لقد قمت بتسجيل الحضور والانصراف مسبقاً اليوم.');
+            $user->update(['photo_url' => $path]);
+            return back()->with('success', 'تم تحديث الصورة الشخصية بنجاح');
 
         } catch (\Exception $e) {
-            Log::error('Attendance error: '.$e->getMessage());
-            return back()->with('error', 'حدث خطأ: '.$e->getMessage());
+            Log::error('Avatar Update Error: ' . $e->getMessage());
+            return back()->with('error', 'فشل تحديث الصورة: ' . $e->getMessage());
         }
     }
 
-    private function handleCheckIn($attendance, $request, $distance)
+    /**
+     * حساب ساعات العمل بدقة
+     */
+/**
+ * حساب ساعات العمل بدقة
+ */
+/**
+ * حساب ساعات العمل بدقة
+ */
+private function calculateWorkingHours($checkIn, $checkOut)
+{
+    try {
+        // تحويل الأوقات إلى كائنات Carbon
+        $start = Carbon::parse($checkIn);
+        $end = Carbon::parse($checkOut);
+        
+        // حساب الفرق بالثواني لضمان الدقة
+        $totalSeconds = $end->diffInSeconds($start);
+        
+        // التحويل إلى ساعات مع الكسور
+        $hours = $totalSeconds / 3600;
+        
+        // تقريب إلى منزلتين عشريتين
+        return round($hours, 2);
+        
+    } catch (\Exception $e) {
+        Log::error('خطأ في حساب ساعات العمل: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+    // ─── الدوال الإضافية ───────────────────────────────────────────────────────
+
+    /**
+     * عرض الغائبين عن اليوم
+     */
+    public function todaysAbsentees()
     {
-        if ($distance > self::MAX_DISTANCE_KM) {
-            throw new \Exception("يجب أن تكون داخل نطاق 500 متر من الفرع لتسجيل الحضور. المسافة الفعلية: ".round($distance, 2)." كم");
+        if (!auth()->user()->isAdminOrSuperAdmin()) {
+            abort(403);
         }
 
-        $attendance->fill([
-            'branch_id' => $request->branch_id,
-            'check_in' => Carbon::now(),
-            'status' => 'In Progress',
-            'location' => json_encode([
-                'check_in' => [
-                    'lat' => $request->latitude,
-                    'lng' => $request->longitude,
-                    'time' => Carbon::now()->toDateTimeString(),
-                    'distance' => $distance
-                ]
-            ])
-        ])->save();
+        $absentees = User::whereDoesntHave('attendances', function ($q) {
+            $q->whereDate('date', today());
+        })->get();
 
-        return back()->with('success', 'تم تسجيل الحضور بنجاح في فرع '.$attendance->branch->name);
+        return view('dash.pages.absentees', compact('absentees'));
     }
 
-    private function handleCheckOut($attendance, $request, $distance)
-    {
-        if ($distance > self::MAX_DISTANCE_KM) {
-            throw new \Exception("يجب أن تكون داخل نطاق 500 متر من الفرع لتسجيل الانصراف. المسافة الفعلية: ".round($distance, 2)." كم");
-        }
-
-        $locationData = json_decode($attendance->location, true);
-        $locationData['check_out'] = [
-            'lat' => $request->latitude,
-            'lng' => $request->longitude,
-            'time' => Carbon::now()->toDateTimeString(),
-            'distance' => $distance
-        ];
-
-        $attendance->update([
-            'check_out' => Carbon::now(),
-            'status' => 'Completed',
-            'working_hours' => $this->calculateWorkingHours($attendance->check_in, Carbon::now()),
-            'location' => json_encode($locationData)
-        ]);
-
-        return back()->with('success', 'تم تسجيل الانصراف بنجاح. وقت العمل: '.$attendance->working_hours.' ساعة');
-    }
-
-    private function calculateWorkingHours($checkIn, $checkOut)
-    {
-        return round(Carbon::parse($checkIn)->diffInMinutes(Carbon::parse($checkOut)) / 60, 2);
-    }
+    /**
+     */
+   
 }

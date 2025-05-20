@@ -1,4 +1,3 @@
-{{-- resources/views/evaluations/create.blade.php --}}
 @extends('dash.dash')
 
 @section('contentdash')
@@ -20,7 +19,7 @@
                                     <option value="">-- Select Employee --</option>
                                     @foreach($users as $user)
                                     <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                        {{ $user->name }}
+                                        {{ $user->name }} @if($user->department) - {{ $user->department->name }} @endif
                                     </option>
                                     @endforeach
                                 </select>
@@ -38,20 +37,6 @@
                                 <input id="evaluation_date" type="date" class="form-control @error('evaluation_date') is-invalid @enderror" 
                                     name="evaluation_date" value="{{ old('evaluation_date', date('Y-m-d')) }}" required>
                                 @error('evaluation_date')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="punctuality" class="col-md-4 col-form-label text-md-right">Punctuality (1-10)</label>
-                            <div class="col-md-6">
-                                <input id="punctuality" type="number" min="1" max="10" 
-                                    class="form-control @error('punctuality') is-invalid @enderror" 
-                                    name="punctuality" value="{{ old('punctuality') }}" required>
-                                @error('punctuality')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>

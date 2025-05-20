@@ -16,6 +16,9 @@
                     <h5>Employee Information</h5>
                     <p><strong>Name:</strong> {{ $evaluation->user->name }}</p>
                     <p><strong>Email:</strong> {{ $evaluation->user->email }}</p>
+                    @if($evaluation->user->department)
+                    <p><strong>Department:</strong> {{ $evaluation->user->department->name }}</p>
+                    @endif
                 </div>
                 <div class="col-md-6">
                     <h5>Evaluation Details</h5>
@@ -78,6 +81,41 @@
                 </div>
             </div>
             @endif
+
+            <!-- Attendance Records -->
+            <div class="mt-4">
+                <h5>Attendance Records for {{ $evaluation->evaluation_date->format('F Y') }}</h5>
+                @if($attendances->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Arrival Time</th>
+                                <th>Expected Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($attendances as $attendance)
+                            <tr>
+                                <td>{{ $attendance->date->format('Y-m-d') }}</td>
+                                <td>
+                                    <span class="badge badge-{{ $attendance->status == 'present' ? 'success' : ($attendance->status == 'late' ? 'warning' : 'danger') }}">
+                                        {{ ucfirst($attendance->status) }}
+                                    </span>
+                                </td>
+                                <td>{{ $attendance->arrival_time ?? 'N/A' }}</td>
+                                <td>{{ $attendance->expected_start_time ?? 'N/A' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="alert alert-info">No attendance records found for this month.</div>
+                @endif
+            </div>
         </div>
         
         @can('update', $evaluation)

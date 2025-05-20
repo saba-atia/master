@@ -110,14 +110,7 @@
                     </dd>
                 </dl>
             </div>
-            <div class="col-md-6">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 text-nowrap">Branch</dt> <!-- Added text-nowrap class -->
-                    <dd class="col-sm-8">
-                        {{ $user->branch->name ?? 'Not assigned' }}
-                    </dd>
-                </dl>
-            </div>
+           
         </div>
     </div>
 </div>

@@ -16,7 +16,7 @@
                     <select name="user_id" id="user_id" class="form-control" required>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ $evaluation->user_id == $user->id ? 'selected' : '' }}>
-                                {{ $user->name }}
+                                {{ $user->name }} @if($user->department) - {{ $user->department->name }} @endif
                             </option>
                         @endforeach
                     </select>
@@ -29,13 +29,6 @@
                 </div>
                 
                 <!-- Evaluation Criteria -->
-                <div class="form-group">
-                    <label for="punctuality">Punctuality (1-10)</label>
-                    <input type="number" name="punctuality" id="punctuality" 
-                           class="form-control" min="1" max="10" 
-                           value="{{ $evaluation->punctuality }}" required>
-                </div>
-                
                 <div class="form-group">
                     <label for="work_quality">Work Quality (1-10)</label>
                     <input type="number" name="work_quality" id="work_quality" 

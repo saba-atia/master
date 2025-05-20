@@ -48,4 +48,10 @@ public function calculatePunctuality()
 
     return $totalDays > 0 ? round(($onTimeDays / $totalDays) * 10, 1) : 0; // تقييم من 1 إلى 10
 }
+
+ public function evaluator()
+    {
+        return $this->belongsTo(User::class, 'evaluator_id');
+    }
+
 }
