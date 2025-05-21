@@ -1,5 +1,5 @@
 @extends('dash.dash')
-
+@section('title', 'Employee Evaluations')
 @section('contentdash')
 <div class="container">
     <div class="card">
@@ -24,9 +24,10 @@
                     <h5>Evaluation Details</h5>
                     <p><strong>Date:</strong> {{ $evaluation->evaluation_date->format('Y-m-d') }}</p>
                     <p><strong>Overall Score:</strong> 
-                        <span class="badge badge-pill badge-{{ $evaluation->average >= 7 ? 'success' : ($evaluation->average >= 5 ? 'warning' : 'danger') }}">
-                            {{ number_format($evaluation->average, 1) }}/10
-                        </span>
+                       <span class="badge badge-pill bg-dark text-white">
+    {{ number_format($evaluation->average, 1) }}/10
+</span>
+
                     </p>
                 </div>
             </div>
@@ -83,39 +84,7 @@
             @endif
 
             <!-- Attendance Records -->
-            <div class="mt-4">
-                <h5>Attendance Records for {{ $evaluation->evaluation_date->format('F Y') }}</h5>
-                @if($attendances->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Arrival Time</th>
-                                <th>Expected Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($attendances as $attendance)
-                            <tr>
-                                <td>{{ $attendance->date->format('Y-m-d') }}</td>
-                                <td>
-                                    <span class="badge badge-{{ $attendance->status == 'present' ? 'success' : ($attendance->status == 'late' ? 'warning' : 'danger') }}">
-                                        {{ ucfirst($attendance->status) }}
-                                    </span>
-                                </td>
-                                <td>{{ $attendance->arrival_time ?? 'N/A' }}</td>
-                                <td>{{ $attendance->expected_start_time ?? 'N/A' }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                @else
-                <div class="alert alert-info">No attendance records found for this month.</div>
-                @endif
-            </div>
+           
         </div>
         
         @can('update', $evaluation)

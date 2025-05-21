@@ -1,8 +1,8 @@
-@extends('layouts.admin')
+@extends('dash.dash')
 
 @section('title', 'Inactive Employees')
 
-@section('content')
+@section('contentdash')
 <div class="container-fluid py-4">
     <div class="card shadow-lg">
         <div class="card-header bg-white border-bottom-0">
@@ -183,6 +183,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Yes, delete!',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // تأكيد التنشيط
+    document.querySelectorAll('.activate-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Activate Employee?',
+                text: "This will restore the employee's access",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, activate!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // تأكيد الحذف
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Permanently Delete?',
+                text: "This cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete!',
+                cancelButtonText: 'Cancel',
+                dangerMode: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();

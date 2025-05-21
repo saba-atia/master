@@ -213,10 +213,11 @@ public function evaluations()
 }
 public function hasRole($role)
 {
-    if (is_array($role)) {
-        return in_array($this->role, $role);
-    }
     return $this->role === $role;
+}
+public function hasAnyRole(array $roles)
+{
+    return in_array($this->role, $roles);
 }
 
 // في ملف User.php

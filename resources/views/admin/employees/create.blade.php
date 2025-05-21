@@ -7,7 +7,7 @@
             <h2 class="mb-0">Add New Employee</h2>
         </div>
         <div class="card-body">
-            <form action="{{ route('admin.employees.store') }}" method="POST">
+<form action="{{ route('admin.employees.store') }}" method="POST">
                 @csrf
                 
                 <div class="row">

@@ -1,5 +1,5 @@
 @extends('dash.dash')
-
+@section('title', 'Employee Evaluations')
 @section('contentdash')
 <div class="container">
     <h1 class="mb-4">Employee Evaluations</h1>
@@ -33,13 +33,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Evaluation Records</h5>
-            @can('emailEvaluations', App\Models\Evaluation::class)
-            <div class="btn-group">
-                <button class="btn btn-secondary btn-sm" onclick="emailEvaluations()">
-                    <i class="fas fa-envelope"></i> Email
-                </button>
-            </div>
-            @endcan
+        
         </div>
         
         <div class="card-body">
@@ -59,8 +53,7 @@
                     <tbody>
                         @foreach($evaluations as $evaluation)
                         <tr>
-                            <td>{{ $evaluation->user->name }}</td>
-                            <td>{{ $evaluation->evaluation_date->format('Y-m-d') }}</td>
+<td>{{ $evaluation->user ? $evaluation->user->name : 'N/A' }}</td>                            <td>{{ $evaluation->evaluation_date->format('Y-m-d') }}</td>
                             <td>
                                 <div class="progress" style="height: 20px;">
                                     <div class="progress-bar bg-success" role="progressbar" 
@@ -95,7 +88,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge badge-pill badge-{{ $evaluation->average >= 7 ? 'success' : ($evaluation->average >= 5 ? 'warning' : 'danger') }}">
+                                <span class="badge badge-pill bg-dark badge-{{ $evaluation->average >= 7 ? 'success' : ($evaluation->average >= 5 ? 'warning' : 'danger') }}">
                                     {{ number_format($evaluation->average, 1) }}
                                 </span>
                             </td>

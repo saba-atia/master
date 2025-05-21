@@ -27,6 +27,8 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $cacheKey = 'dashboard_' . $user->id;
+            $departmentId = $user->department_id;
+
 
         // إذا كان الكاش موجوداً، استرجاعه مباشرة
         if (Cache::has($cacheKey)) {

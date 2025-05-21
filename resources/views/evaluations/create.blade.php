@@ -1,5 +1,5 @@
 @extends('dash.dash')
-
+@section('title', 'Employee Evaluations')
 @section('contentdash')
 <div class="container">
     <div class="row justify-content-center">

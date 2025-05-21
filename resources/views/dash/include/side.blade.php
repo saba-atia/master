@@ -23,7 +23,7 @@
 
             <!-- Attendance -->
             <li class="nav-item">
-                <a href="{{ route('attendance') }}" class="nav-link {{ request()->routeIs('attendance') ? 'active' : '' }}">
+                <a href="{{ route('attendance.index') }}" class="nav-link {{ request()->routeIs('attendance') ? 'active' : '' }}">
                     <div class="nav-icon">
                         <i class="fas fa-calendar-check"></i>
                     </div>
@@ -67,44 +67,37 @@
 
             <!-- Admin Section -->
             @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin()))
-            <li class="nav-item">
-                <div class="dropdown">
-                    <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['admin.*', 'evaluations.*', 'reports.*']) ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <span>Admin Panel</span>
-                        <span class="admin-badge {{ auth()->user()->isSuperAdmin() ? 'super-admin' : '' }}">
-                            {{ auth()->user()->isSuperAdmin() ? 'SUPER ADMIN' : 'ADMIN' }}
-                        </span>
-                    </a>
-                    <ul class="dropdown-menu {{ request()->routeIs(['admin.*', 'evaluations.*', 'reports.*']) ? 'show' : '' }}">
-                        <!-- Employee Management -->
-                        <li>
-                            <a href="{{ route('admin.employees.index') }}" class="dropdown-item {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
-                                <i class="fas fa-users-cog"></i> Employee Management
-                            </a>
-                        </li>
-                        
-                        <!-- Evaluations (for Super Admin only) -->
-                        @if(auth()->user()->isSuperAdmin())
-                        <li>
-                            <a href="{{ route('evaluations.index') }}" class="dropdown-item {{ request()->routeIs('evaluations.*') ? 'active' : '' }}">
-                                <i class="fas fa-star"></i> Employee Evaluations
-                            </a>
-                        </li>
-                        @endif
-                        
-                        <!-- Reports -->
-                        <li>
-                            <a href="{{ route('reports.index') }}" class="dropdown-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                                <i class="fas fa-chart-bar"></i> Reports
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+<li class="nav-item">
+    <div class="dropdown">
+        <a href="#" class="nav-link dropdown-toggle {{ request()->routeIs(['admin.*', 'evaluations.*']) ? 'active' : '' }}">
+            <div class="nav-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <span>Admin Panel</span>
+            <span class="admin-badge {{ auth()->user()->isSuperAdmin() ? 'super-admin' : '' }}">
+                {{ auth()->user()->isSuperAdmin() ? 'SUPER ADMIN' : 'ADMIN' }}
+            </span>
+        </a>
+        <ul class="dropdown-menu {{ request()->routeIs(['admin.*', 'evaluations.*']) ? 'show' : '' }}">
+            <!-- Employee Management -->
+            <li>
+                <a href="{{ route('admin.employees.index') }}" class="dropdown-item {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+                    <i class="fas fa-users-cog"></i> Employee Management
+                </a>
+            </li>
+            
+            <!-- Evaluations (for Super Admin and Admin) -->
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+            <li>
+                <a href="{{ route('evaluations.index') }}" class="dropdown-item {{ request()->routeIs('evaluations.*') ? 'active' : '' }}">
+                    <i class="fas fa-star"></i> Employee Evaluations
+                </a>
             </li>
             @endif
+        </ul>
+    </div>
+</li>
+@endif
 
             <!-- Department Manager Section -->
             @if(auth()->check() && auth()->user()->isDepartmentManager())
@@ -123,11 +116,11 @@
                                 <i class="fas fa-users"></i> My Team
                             </a>
                         </li>
-                        <li>
-                            <a href="{{ route('department.leaves') }}" class="dropdown-item {{ request()->routeIs('department.leaves') ? 'active' : '' }}">
-                                <i class="fas fa-calendar-check"></i> Leave Approvals
-                            </a>
-                        </li>
+                          <li>
+                <a href="{{ route('evaluations.index') }}" class="dropdown-item {{ request()->routeIs('evaluations.*') ? 'active' : '' }}">
+                    <i class="fas fa-star"></i> Employee Evaluations
+                </a>
+            </li>
                     </ul>
                 </div>
             </li>

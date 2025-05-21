@@ -2,7 +2,7 @@
 @section('title', 'attendance')
 @section('contentdash')
 
-    @php
+       @php
         $user = auth()->user();
         
         // Attendance filter params
@@ -18,7 +18,10 @@
 
         // Query for attendance records
         if ($user->isAdminOrSuperAdmin()) {
-            $attendanceQuery = \App\Models\Attendance::with(['user', 'user.department']);
+            $attendanceQuery = \App\Models\Attendance::with(['user', 'user.department'])
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active'); // فقط الموظفين النشطين
+                });
         } else {
             $attendanceQuery = $user->attendances()->with(['user.department']);
         }
@@ -29,7 +32,8 @@
 
         if ($attendance_department_id) {
             $attendanceQuery = $attendanceQuery->whereHas('user', function ($q) use ($attendance_department_id) {
-                $q->where('department_id', $attendance_department_id);
+                $q->where('department_id', $attendance_department_id)
+                  ->where('status', 'active'); // إضافة شرط النشاط هنا أيضاً
             });
         }
 
@@ -40,9 +44,10 @@
         if ($user->isAdminOrSuperAdmin()) {
             $absentDateFilter = $absent_from && $absent_to ? [$absent_from, $absent_to] : [today(), today()];
 
-            $absentQuery = \App\Models\User::whereDoesntHave('attendances', function ($q) use ($absentDateFilter) {
-                $q->whereBetween('date', $absentDateFilter);
-            });
+            $absentQuery = \App\Models\User::where('status', 'active') // فقط الموظفين النشطين
+                ->whereDoesntHave('attendances', function ($q) use ($absentDateFilter) {
+                    $q->whereBetween('date', $absentDateFilter);
+                });
 
             if ($absent_name) {
                 $absentQuery->where('name', 'like', '%'.$absent_name.'%');

@@ -209,9 +209,11 @@
                         <span class="status-badge status-{{ $leave->status }}">
                             {{ ucfirst(str_replace('_', ' ', $leave->status)) }}
                         </span>
-                        @if($leave->approved_by)
-                            <div style="color: #6c757d; font-size: 0.75rem; margin-top: 3px;">by {{ $leave->approver->name }}</div>
-                        @endif
+                       @if($leave->approved_by && $leave->approver)
+    <div style="color: #6c757d; font-size: 0.75rem; margin-top: 3px;">
+        by {{ $leave->approver->name }}
+    </div>
+@endif
                     </td>
                     <td>
                         <div class="actions-container">

@@ -1,5 +1,5 @@
 @extends('dash.dash')
-
+@section('title', 'Edit Evaluations')
 @section('contentdash')
 <div class="container">
     <div class="card">

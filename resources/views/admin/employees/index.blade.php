@@ -7,9 +7,9 @@
         
         <div>
             @if(in_array(auth()->user()->role, ['super_admin', 'admin']))
-                <a href="{{ route('admin.employees.inactive') }}" class="btn btn-outline-secondary me-2">
-                    <i class="fas fa-user-slash"></i> Inactive Employees ({{ $inactiveCount }})
-                </a>
+<a href="{{ route('admin.employees.inactive') }}" class="btn btn-outline-secondary me-2">
+    <i class="fas fa-user-slash"></i> Inactive Employees ({{ $inactiveCount }})
+</a>
                 <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Add New Employee
                 </a>

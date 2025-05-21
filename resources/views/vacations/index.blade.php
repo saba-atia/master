@@ -165,37 +165,48 @@
             <tbody>
                 @foreach($vacations as $vacation)
                 <tr>
-                    <td>
-                        <div class="employee-cell">
-                            @if($vacation->user->photo_url && Storage::disk('public')->exists($vacation->user->photo_url))
-                                <img src="{{ asset('storage/'.$vacation->user->photo_url) }}" 
-                                     alt="{{ $vacation->user->name }}" 
-                                     class="employee-avatar">
-                            @else
-                                <div class="employee-avatar" style="background-color: {{ $vacation->user->avatar_color }};">
-                                    <span class="avatar-initials">{{ $vacation->user->initials }}</span>
-                                </div>
-                            @endif
-                            <div>
-                                <div style="font-weight: 600;">{{ $vacation->user->name }}</div>
-                                <div style="color: #6c757d; font-size: 0.8rem;">{{ $vacation->department->name ?? 'N/A' }}</div>
-                            </div>
-                        </div>
-                    </td>
+                   <td>
+    <div class="employee-cell">
+        @if($vacation->user)
+            @if($vacation->user->photo_url && Storage::disk('public')->exists($vacation->user->photo_url))
+                <img src="{{ asset('storage/'.$vacation->user->photo_url) }}"
+                     alt="{{ $vacation->user->name }}"
+                     class="employee-avatar">
+            @else
+                <div class="employee-avatar" style="background-color: {{ $vacation->user->avatar_color ?? '#6c757d' }};">
+                    <span class="avatar-initials">{{ $vacation->user->initials ?? '??' }}</span>
+                </div>
+            @endif
+            <div>
+                <div style="font-weight: 600;">{{ $vacation->user->name ?? 'Deleted User' }}</div>
+                <div style="color: #6c757d; font-size: 0.8rem;">{{ $vacation->department->name ?? 'N/A' }}</div>
+            </div>
+        @else
+            <div class="employee-avatar" style="background-color: #6c757d;">
+                <span class="avatar-initials">??</span>
+            </div>
+            <div>
+                <div style="font-weight: 600;">Deleted User</div>
+                <div style="color: #6c757d; font-size: 0.8rem;">N/A</div>
+            </div>
+        @endif
+    </div>
+</td>
                     <td>{{ ucfirst($vacation->type) }}</td>
                     <td>{{ \Carbon\Carbon::parse($vacation->start_date)->format('M d, Y') }}</td>
                     <td>{{ \Carbon\Carbon::parse($vacation->end_date)->format('M d, Y') }}</td>
                     <td>{{ $vacation->days_taken }}</td>
-                    <td>
-                        <span class="status-badge status-{{ $vacation->status }}">
-                            {{ ucfirst($vacation->status) }}
-                        </span>
-                        @if($vacation->approved_by)
-                            <div style="color: #6c757d; font-size: 0.75rem; margin-top: 3px;">
-                                by {{ $vacation->approver->name }}
-                            </div>
-                        @endif
-                    </td>
+                   <td>
+    <span class="status-badge status-{{ $vacation->status }}">
+        {{ ucfirst($vacation->status) }}
+    </span>
+    
+    @if($vacation->approved_by)
+        <div style="color: #6c757d; font-size: 0.75rem; margin-top: 3px;">
+            by {{ $vacation->approver?->name ?? 'Unknown Approver' }}
+        </div>
+    @endif
+</td>
                     <td>
                         <div class="actions-container">
                             <!-- Department Manager Actions -->

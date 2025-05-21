@@ -2,166 +2,241 @@
 
 @section('contentdash')
 <div class="container-fluid">
-    @php
-        // Helper functions for avatars
-        if (!function_exists('stringToColor')) {
-            function stringToColor($string) {
-                $hash = md5($string);
-                return sprintf('#%s', substr($hash, 0, 6));
+  @php
+    // Helper functions for avatars
+    if (!function_exists('stringToColor')) {
+        function stringToColor($string) {
+            $hash = md5($string);
+            return sprintf('#%s', substr($hash, 0, 6));
+        }
+    }
+
+    if (!function_exists('getInitials')) {
+        function getInitials($name) {
+            $words = explode(' ', $name);
+            $initials = '';
+
+            if (count($words) >= 2) {
+                $initials = strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+            } else {
+                $initials = strtoupper(substr($name, 0, 2));
             }
+
+            return $initials;
         }
+    }
 
-        if (!function_exists('getInitials')) {
-            function getInitials($name) {
-                $words = explode(' ', $name);
-                $initials = '';
+    // Calculate absence statistics
+    $user = auth()->user();
+    $today = today()->format('Y-m-d');
 
-                if (count($words) >= 2) {
-                    $initials = strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
-                } else {
-                    $initials = strtoupper(substr($name, 0, 2));
-                }
+    // For employees
+    if ($user->role === 'employee') {
+        $absentDays = $user->attendances()
+            ->where('status', 'like', '%Absent%')
+            ->count();
 
-                return $initials;
-            }
-        }
+        $approvedVacations = $user->vacations()
+            ->where('status', 'Approved')
+            ->count();
 
-        // Calculate absence statistics
-        $user = auth()->user();
-        $today = today()->format('Y-m-d');
+        $approvedLeaves = $user->leave()
+            ->where('status', 'Approved')
+            ->count();
 
-        // For employees
-        if ($user->role === 'employee') {
-            $absentDays = $user->attendances()
-                ->where('status', 'like', '%Absent%')
-                ->count();
+        $todayBirthdays = \App\Models\User::where('status', 'active')
+            ->whereMonth('birth_date', today()->month)
+            ->whereDay('birth_date', today()->day)
+            ->get();
 
-            $approvedVacations = $user->vacations()
-                ->where('status', 'Approved')
-                ->count();
+        $latestEvaluation = $user->evaluations()
+            ->latest()
+            ->first();
+    }
 
-            $approvedLeaves = $user->leave()
-                ->where('status', 'Approved')
-                ->count();
+    // For admins/managers
+    if (in_array($user->role, ['admin', 'super_admin', 'department_manager'])) {
+        $activeEmployees = \App\Models\User::where('status', 'active')->count();
+        $inactiveEmployees = \App\Models\User::where('status', 'inactive')->count();
+        
+        // Count present employees today (distinct users)
+       $presentToday = \App\Models\Attendance::whereDate('date', $today)
+    ->where('status', 'like', '%Present%')
+    ->whereHas('user', function($q) {
+        $q->where('status', 'active');
+    })
+    ->distinct('user_id')
+    ->count('user_id');
 
-            $todayBirthdays = \App\Models\User::whereMonth('birth_date', today()->month)
-                ->whereDay('birth_date', today()->day)
-                ->get();
-
-            $latestEvaluation = $user->evaluations()
-                ->latest()
-                ->first();
-        }
-
-        // For admins/managers
-        if (in_array($user->role, ['admin', 'super_admin', 'department_manager'])) {
-            $activeEmployees = \App\Models\User::where('status', 'active')->count();
-            $inactiveEmployees = \App\Models\User::where('status', 'inactive')->count();
-            
-            $presentToday = \App\Models\Attendance::whereDate('date', $today)
-                ->where('status', 'like', '%Present%')
-                ->count();
-
-            $absentToday = \App\Models\User::whereDoesntHave('attendances', function($q) use ($today) {
+        $absentToday = \App\Models\User::where('status', 'active')
+            ->whereDoesntHave('attendances', function($q) use ($today) {
                 $q->whereDate('date', $today);
             })->count();
 
-            $todayBirthdays = \App\Models\User::whereMonth('birth_date', today()->month)
-                ->whereDay('birth_date', today()->day)
-                ->get();
+        $todayBirthdays = \App\Models\User::where('status', 'active')
+            ->whereMonth('birth_date', today()->month)
+            ->whereDay('birth_date', today()->day)
+            ->get();
 
-            // Vacation stats
-            $vacationStats = [
-                'total' => \App\Models\Vacation::count(),
-                'approved' => \App\Models\Vacation::where('status', 'Approved')->count(),
-                'pending' => \App\Models\Vacation::where('status', 'Pending')->count(),
-                'rejected' => \App\Models\Vacation::where('status', 'Rejected')->count(),
-                'approved_percentage' => \App\Models\Vacation::count() > 0 ? 
-                    round(\App\Models\Vacation::where('status', 'Approved')->count() / \App\Models\Vacation::count() * 100) : 0
-            ];
+        // Vacation stats - only for active employees
+        $vacationStats = [
+            'total' => \App\Models\Vacation::whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'approved' => \App\Models\Vacation::where('status', 'Approved')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'pending' => \App\Models\Vacation::where('status', 'Pending')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'rejected' => \App\Models\Vacation::where('status', 'Rejected')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'approved_percentage' => \App\Models\Vacation::whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count() > 0 ? 
+                round(\App\Models\Vacation::where('status', 'Approved')
+                    ->whereHas('user', function($q) {
+                        $q->where('status', 'active');
+                    })->count() / \App\Models\Vacation::whereHas('user', function($q) {
+                        $q->where('status', 'active');
+                    })->count() * 100) : 0
+        ];
 
-            // Leave stats
-            $leaveStats = [
-                'total' => \App\Models\Leave::count(),
-                'approved' => \App\Models\Leave::where('status', 'Approved')->count(),
-                'pending' => \App\Models\Leave::where('status', 'Pending')->count(),
-                'rejected' => \App\Models\Leave::where('status', 'Rejected')->count(),
-                'approved_percentage' => \App\Models\Leave::count() > 0 ? 
-                    round(\App\Models\Leave::where('status', 'Approved')->count() / \App\Models\Leave::count() * 100) : 0
-            ];
+        // Leave stats - only for active employees
+        $leaveStats = [
+            'total' => \App\Models\Leave::whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'approved' => \App\Models\Leave::where('status', 'Approved')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'pending' => \App\Models\Leave::where('status', 'Pending')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'rejected' => \App\Models\Leave::where('status', 'Rejected')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'approved_percentage' => \App\Models\Leave::whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count() > 0 ? 
+                round(\App\Models\Leave::where('status', 'Approved')
+                    ->whereHas('user', function($q) {
+                        $q->where('status', 'active');
+                    })->count() / \App\Models\Leave::whereHas('user', function($q) {
+                        $q->where('status', 'active');
+                    })->count() * 100) : 0
+        ];
 
-            // Absence stats
-            $absenceStats = [
-                'total' => \App\Models\Attendance::where('status', 'like', '%Absent%')->count(),
-                'justified' => \App\Models\Attendance::where('status', 'like', '%Absent%')
+        // Absence stats - only for active employees
+        $absenceStats = [
+            'total' => \App\Models\Attendance::where('status', 'like', '%Absent%')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'justified' => \App\Models\Attendance::where('status', 'like', '%Absent%')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count(),
+            'percentage' => \App\Models\Attendance::where('status', 'like', '%Absent%')
+                ->whereHas('user', function($q) {
+                    $q->where('status', 'active');
+                })->count() > 0 ?
+                round(\App\Models\Attendance::where('status', 'like', '%Absent%')
+                    ->whereNotNull('justification')
+                    ->whereHas('user', function($q) {
+                        $q->where('status', 'active');
+                    })->count() / \App\Models\Attendance::where('status', 'like', '%Absent%')
+                        ->whereHas('user', function($q) {
+                            $q->where('status', 'active');
+                        })->count() * 100) : 0
+        ];
+
+        // Department specific data for managers
+        if ($user->role === 'department_manager') {
+            $departmentId = $user->department_id;
+            
+            // Department attendance data - only active employees
+            $deptAttendanceData = [
+               $presentToday = \App\Models\User::where('status', 'active')
+    ->whereDoesntHave('attendances', function($q) use ($today) {
+        $q->whereDate('date', $today)
+          ->where('status', 'like', '%Absent%');
+    })
+    ->count(),
+                'absent' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->whereMonth('date', today()->month)
+                    ->where('status', 'like', '%Absent%')
                     ->count(),
-                'percentage' => \App\Models\Attendance::where('status', 'like', '%Absent%')->count() > 0 ?
-                    round(\App\Models\Attendance::where('status', 'like', '%Absent%')
-                        ->whereNotNull('justification')
-                        ->count() / \App\Models\Attendance::where('status', 'like', '%Absent%')->count() * 100) : 0
+                'late' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->whereMonth('date', today()->month)
+                    ->where('status', 'like', '%Late%')
+                    ->count(),
+                'on_leave' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->whereMonth('date', today()->month)
+                    ->where('status', 'like', '%Leave%')
+                    ->count()
             ];
 
-            // Recent activities
-         $recentActivities = [];
-
-            // Department specific data for managers
-            if ($user->role === 'department_manager') {
-                $departmentId = $user->department_id;
-                
-                // Department attendance data
-                $deptAttendanceData = [
-                    'present' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->whereMonth('date', today()->month)
-                        ->where('status', 'like', '%Present%')
-                        ->count(),
-                    'absent' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->whereMonth('date', today()->month)
-                        ->where('status', 'like', '%Absent%')
-                        ->count(),
-                    'late' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->whereMonth('date', today()->month)
-                        ->where('status', 'like', '%Late%')
-                        ->count(),
-                    'on_leave' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->whereMonth('date', today()->month)
-                        ->where('status', 'like', '%Leave%')
-                        ->count()
-                ];
-
-                // Department leave types
-                $deptLeaveTypes = [
-                    'sick_leave' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->where('type', 'Sick Leave')
-                        ->count(),
-                    'personal_leave' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->where('type', 'Personal Leave')
-                        ->count(),
-                    'vacation' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->where('type', 'Vacation')
-                        ->count(),
-                    'unexcused' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
-                            $q->where('department_id', $departmentId);
-                        })
-                        ->where('status', 'like', '%Absent%')
-                        ->count()
-                ];
-            }
+            // Department leave types - only active employees
+            $deptLeaveTypes = [
+                'sick_leave' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->where('type', 'Sick Leave')
+                    ->count(),
+                'personal_leave' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->where('type', 'Personal Leave')
+                    ->count(),
+                'vacation' => \App\Models\Leave::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->where('type', 'Vacation')
+                    ->count(),
+                'unexcused' => \App\Models\Attendance::whereHas('user', function($q) use ($departmentId) {
+                        $q->where('department_id', $departmentId)
+                          ->where('status', 'active');
+                    })
+                    ->where('status', 'like', '%Absent%')
+                    ->count()
+            ];
         }
-    @endphp
+    }
+@endphp
+
+@php
+    // احصل على تقييمات المستخدم الحالي
+    $userEvaluations = auth()->user()->evaluations()->orderBy('evaluation_date', 'desc')->get();
+    $latestEvaluation = $userEvaluations->first();
+    
+    // احسب المتوسطات إذا كان هناك تقييمات
+    if($userEvaluations->count() > 0) {
+        $avgPunctuality = $userEvaluations->avg('punctuality');
+        $avgWorkQuality = $userEvaluations->avg('work_quality');
+        $avgTeamwork = $userEvaluations->avg('teamwork');
+        $avgOverall = $userEvaluations->avg('average');
+    }
+@endphp
 
     @if(auth()->user()->role === 'employee')
         <!-- Employee Dashboard -->
@@ -170,98 +245,236 @@
                 <h3 class="mb-4">Employee Dashboard</h3>
             </div>
             
-            <!-- Stats Cards -->
+            <!-- Stats Cards - New Design -->
             <div class="col-md-4 mb-4">
-                <div class="card border-left-danger shadow h-100 py-2">
+                <div class="stat-card stat-card-danger h-100">
                     <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                    Absent Days</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $absentDays ?? 0 }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
-                            </div>
+                        <i class="fas fa-calendar-times stat-icon"></i>
+                        <div class="stat-title">Absent Days</div>
+                        <div class="stat-value">{{ $absentDays ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-info-circle text-danger mr-1"></i>
+                            <span>Total absences</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
+                <div class="stat-card stat-card-success h-100">
                     <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    Approved Vacations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $approvedVacations ?? 0 }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-umbrella-beach fa-2x text-gray-300"></i>
-                            </div>
+                        <i class="fas fa-umbrella-beach stat-icon"></i>
+                        <div class="stat-title">Approved Vacations</div>
+                        <div class="stat-value">{{ $approvedVacations ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-check-circle text-success mr-1"></i>
+                            <span>Approved requests</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-        @if($user->role === 'employee')
-    <div class="col-md-4 mb-4">
-        <div class="card border-left-warning shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            Approved Leaves</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            {{ $approvedLeaves ?? 0 }}
+            <div class="col-md-4 mb-4">
+                <div class="stat-card stat-card-warning h-100">
+                    <div class="card-body">
+                        <i class="fas fa-sign-out-alt stat-icon"></i>
+                        <div class="stat-title">Approved Leaves</div>
+                        <div class="stat-value">{{ $approvedLeaves ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-clock text-warning mr-1"></i>
+                            <span>Total leaves</span>
                         </div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-sign-out-alt fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-@endif
 
             @if(count($todayBirthdays ?? []) > 0)
             <div class="col-12 mb-4">
-                <div class="card shadow">
+                <div class="card shadow border-0">
                     <div class="card-header py-3 bg-gradient-primary">
-                        <h6 class="m-0 font-weight-bold text-white">🎉 Today's Birthdays</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-white">
+                                <i class="fas fa-birthday-cake mr-2"></i> Today's Birthdays
+                            </h6>
+                            <span class="badge badge-light">{{ count($todayBirthdays) }}</span>
+                        </div>
                     </div>
                     <div class="card-body">
-                        @foreach($todayBirthdays as $birthday)
-                        <div class="alert alert-info">
-                            🎂 Today is <strong>{{ $birthday->name }}</strong>'s birthday!
+                        <div class="row">
+                            @foreach($todayBirthdays as $birthday)
+                            <div class="col-md-3 mb-4">
+                                <div class="birthday-card h-100">
+                                    <div class="profile-img-container">
+                                        <img class="profile-img" 
+                                             src="{{ $birthday->avatar_url ?? asset('img/default-avatar.png') }}" 
+                                             alt="{{ $birthday->name }}">
+                                    </div>
+                                    <div class="card-body">
+                                        <h5 class="user-name">{{ $birthday->name }}</h5>
+                                        <p class="user-position">{{ $birthday->position }}</p>
+                                        <div class="birthday-info">
+                                            <i class="fas fa-birthday-cake"></i>
+                                            {{ \Carbon\Carbon::parse($birthday->birth_date)->format('M d') }}
+                                        </div>
+                                        <button class="btn btn-primary btn-sm send-wish" 
+                                                data-user-id="{{ $birthday->id }}">
+                                            <i class="fas fa-gift mr-1"></i> Send Wish
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
                         </div>
-                        @endforeach
                     </div>
                 </div>
             </div>
             @endif
 
-            @if($latestEvaluation ?? false)
-            <div class="col-12">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">⭐ Your Performance</h6>
+          <!-- Evaluation Section for All Users -->
+<div class="col-12 mb-4">
+    <div class="card shadow evaluation-card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-star mr-2"></i> 
+                @if(auth()->user()->role === 'employee')
+                    Your Performance Evaluation
+                @else
+                    My Performance Overview
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            @if($userEvaluations->count() > 0)
+                <div class="row">
+                    <!-- Radar Chart -->
+                    <div class="col-md-6">
+                        <canvas id="evaluationRadarChart" height="250"></canvas>
                     </div>
-                    <div class="card-body">
-                        @include('partials.evaluation-chart', ['evaluation' => $latestEvaluation])
+                    
+                    <!-- Progress Chart -->
+                    <div class="col-md-6">
+                        <canvas id="evaluationProgressChart" height="250"></canvas>
                     </div>
                 </div>
-            </div>
+                
+                <!-- Rating Details -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="rating-box bg-success text-white p-3 rounded text-center">
+                            <h6>Punctuality</h6>
+                            <h3>{{ number_format($latestEvaluation->punctuality, 1) }}/10</h3>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-light" 
+                                     style="width: {{ $latestEvaluation->punctuality * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="rating-box bg-info text-white p-3 rounded text-center">
+                            <h6>Work Quality</h6>
+                            <h3>{{ number_format($latestEvaluation->work_quality, 1) }}/10</h3>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-light" 
+                                     style="width: {{ $latestEvaluation->work_quality * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="rating-box bg-primary text-white p-3 rounded text-center">
+                            <h6>Teamwork</h6>
+                            <h3>{{ number_format($latestEvaluation->teamwork, 1) }}/10</h3>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-light" 
+                                     style="width: {{ $latestEvaluation->teamwork * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="rating-box bg-dark text-white p-3 rounded text-center">
+                            <h6>Overall</h6>
+                            <h3>{{ number_format($latestEvaluation->average, 1) }}/10</h3>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-light" 
+                                     style="width: {{ $latestEvaluation->average * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Content Based on Role -->
+                @if(auth()->user()->role === 'employee')
+                <div class="mt-4 p-3 bg-light rounded">
+                    <h6><i class="fas fa-comment mr-2"></i> Manager's Feedback</h6>
+                    <p class="mb-0">{{ $latestEvaluation->notes ?? 'No comments provided' }}</p>
+                </div>
+                @elseif(in_array(auth()->user()->role, ['admin', 'super_admin', 'department_manager']))
+                <div class="mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-chart-bar mr-2"></i> Evaluation Statistics</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Total Evaluations
+                                            <span class="badge bg-primary rounded-pill">{{ $userEvaluations->count() }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Average Rating
+                                            <span class="badge bg-success rounded-pill">{{ number_format($avgOverall, 1) }}/10</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Last Evaluation
+                                            <span>{{ $latestEvaluation->evaluation_date->format('M d, Y') }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-bullseye mr-2"></i> Performance Goals</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ min($avgOverall * 10, 100) }}%" 
+                                             aria-valuenow="{{ $avgOverall * 10 }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ number_format($avgOverall * 10, 1) }}%
+                                        </div>
+                                    </div>
+                                    <p class="small text-muted mb-0">
+                                        @if($avgOverall >= 8)
+                                            Excellent performance! Keep it up.
+                                        @elseif($avgOverall >= 6)
+                                            Good performance, with room for improvement.
+                                        @else
+                                            Needs improvement in several areas.
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
             @else
-            <div class="col-12">
-                <div class="alert alert-warning">
-                    No evaluation available yet.
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle mr-2"></i> 
+                    @if(auth()->user()->role === 'employee')
+                        You don't have any evaluations yet.
+                    @else
+                        No evaluation records available yet.
+                    @endif
                 </div>
-            </div>
             @endif
         </div>
+    </div>
+</div>
 
     @elseif(in_array(auth()->user()->role, ['admin', 'super_admin', 'department_manager']))
         <!-- Admin/Manager Dashboard -->
@@ -270,106 +483,46 @@
                 <h3 class="mb-4">{{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }} Dashboard</h3>
             </div>
             
-            <!-- Stats Cards -->
+            <!-- Stats Cards - New Design -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2">
+                <div class="stat-card stat-card-primary h-100">
                     <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                    Active Employees</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $activeEmployees ?? 0 }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-users fa-2x text-gray-300"></i>
-                            </div>
+                        <i class="fas fa-users stat-icon"></i>
+                        <div class="stat-title">Active Employees</div>
+                        <div class="stat-value">{{ $activeEmployees ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-info-circle text-primary mr-1"></i>
+                            <span>Currently working</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="stat-card stat-card-secondary h-100">
                     <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                    Inactive Employees </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $inactiveEmployees ?? 0 }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-slash fa-2x text-gray-300"></i>
-                            </div>
+                        <i class="fas fa-user-slash stat-icon"></i>
+                        <div class="stat-title">Inactive Employees</div>
+                        <div class="stat-value">{{ $inactiveEmployees ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-info-circle text-secondary mr-1"></i>
+                            <span>Not active</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-      <div class="col-xl-3 col-md-6 mb-4">
-    <div class="card border-left-success shadow h-100 py-2">
-        <div class="card-body">
-            <div class="row no-gutters align-items-center">
-                <div class="col mr-2">
-                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                        Present Today ({{ $presentToday ?? 0 }})
-                    </div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                        @foreach($presentEmployees->take(3) as $employee)
-                            <div class="d-flex align-items-center mb-1">
-                                <div class="avatar-sm me-2">
-                                    @if($employee->photo_url)
-                                        <img src="{{ asset('storage/'.$employee->photo_url) }}" 
-                                             class="rounded-circle" width="24" height="24"
-                                             onerror="this.onerror=null;this.src='{{ asset('img/default-avatar.png') }}'">
-                                    @else
-                                        <div class="avatar-initials rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
-                                             style="width:24px;height:24px;font-size:10px">
-                                            {{ substr($employee->name, 0, 1) }}
-                                        </div>
-                                    @endif
-                                </div>
-                                <span class="text-truncate" style="max-width: 100px">{{ $employee->name }}</span>
-                            <small class="text-muted ms-auto">
-    @if($employee->attendances->first() && $employee->attendances->first()->check_in)
-        {{ $employee->attendances->first()->check_in->format('h:i A') }}
-    @else
-        N/A
-    @endif
-</small>
-                            </div>
-                        @endforeach
-                        @if($presentToday > 3)
-                            <div class="text-center mt-2">
-                                <small class="text-muted">+{{ $presentToday - 3 }} more</small>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-                <div class="col-auto">
-                    <i class="fas fa-user-check fa-2x text-gray-300"></i>
-                </div>
-            </div>
-        </div>
-        <div class="card-footer bg-transparent py-1 px-3">
-            <a href="{{ route('attendance.index') }}" class="small text-success stretched-link">
-                View all attendance records
-            </a>
-        </div>
-    </div>
-</div>
+           
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-danger shadow h-100 py-2">
+                <div class="stat-card stat-card-danger h-100">
                     <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                    Absent Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $absentToday ?? 0 }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-times fa-2x text-gray-300"></i>
-                            </div>
+                        <i class="fas fa-user-times stat-icon"></i>
+                        <div class="stat-title">Absent Today</div>
+                        <div class="stat-value">{{ $absentToday ?? 0 }}</div>
+                        <div class="stat-change">
+                            <i class="fas fa-exclamation-circle text-danger mr-1"></i>
+                            <span>Missing</span>
                         </div>
                     </div>
                 </div>
@@ -377,27 +530,36 @@
 
             @if(count($todayBirthdays ?? []) > 0)
             <div class="col-12 mb-4">
-                <div class="card shadow">
+                <div class="card shadow border-0">
                     <div class="card-header py-3 bg-gradient-primary">
-                        <h6 class="m-0 font-weight-bold text-white">🎉 Today's Birthdays</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-white">
+                                <i class="fas fa-birthday-cake mr-2"></i> Today's Birthdays
+                            </h6>
+                            <span class="badge badge-light">{{ count($todayBirthdays) }}</span>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             @foreach($todayBirthdays as $birthday)
-                            <div class="col-md-4 mb-3">
-                                <div class="card border-left-info shadow">
+                            <div class="col-md-3 mb-4">
+                                <div class="birthday-card h-100">
+                                    <div class="profile-img-container">
+                                        <img class="profile-img" 
+                                             src="{{ $birthday->avatar_url ?? asset('img/default-avatar.png') }}" 
+                                             alt="{{ $birthday->name }}">
+                                    </div>
                                     <div class="card-body">
-                                        <div class="text-center">
-                                            <img class="img-profile rounded-circle mb-2" 
-                                                 src="{{ $birthday->avatar_url ?? asset('img/default-avatar.png') }}" 
-                                                 style="width: 60px; height: 60px;">
-                                            <h6>{{ $birthday->name }}</h6>
-                                            <p class="text-muted small">{{ $birthday->position }}</p>
-                                            <button class="btn btn-sm btn-outline-primary send-wish" 
-                                                    data-user-id="{{ $birthday->id }}">
-                                                <i class="fas fa-gift"></i> Send Wish
-                                            </button>
+                                        <h5 class="user-name">{{ $birthday->name }}</h5>
+                                        <p class="user-position">{{ $birthday->position }}</p>
+                                        <div class="birthday-info">
+                                            <i class="fas fa-birthday-cake"></i>
+                                            {{ \Carbon\Carbon::parse($birthday->birth_date)->format('M d') }}
                                         </div>
+                                        <button class="btn btn-primary btn-sm send-wish" 
+                                                data-user-id="{{ $birthday->id }}">
+                                            <i class="fas fa-gift mr-1"></i> Send Wish
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -411,31 +573,18 @@
             <!-- Statistics Overview Section -->
             <div class="col-12 mb-4">
                 <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">📊 Statistics Overview</h6>
+                    <div class="card-header py-3 bg-gradient-info">
+                        <h6 class="m-0 font-weight-bold text-white">📊 Statistics Overview</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-4 mb-4">
-                                <div class="card border-left-success h-100">
+                            <div class="col-md-6 mb-4">
+                                <div class="stat-card stat-card-success h-100">
                                     <div class="card-body">
-                                        <h5 class="card-title text-success">
-                                            <i class="fas fa-umbrella-beach"></i> Vacations
-                                        </h5>
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col-auto">
-                                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ $vacationStats['total'] ?? 0 }}</div>
-                                            </div>
-                                            <div class="col">
-                                                <div class="progress progress-sm mr-2">
-                                                    <div class="progress-bar bg-success" role="progressbar"
-                                                        style="width: {{ $vacationStats['approved_percentage'] ?? 0 }}%" 
-                                                        aria-valuenow="{{ $vacationStats['approved_percentage'] ?? 0 }}" 
-                                                        aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 text-xs">
+                                        <i class="fas fa-umbrella-beach stat-icon"></i>
+                                        <div class="stat-title">Vacations</div>
+                                        <div class="stat-value">{{ $vacationStats['total'] ?? 0 }}</div>
+                                        <div class="stat-change">
                                             <span class="text-success mr-2">
                                                 <i class="fas fa-check"></i> {{ $vacationStats['approved'] ?? 0 }} Approved
                                             </span>
@@ -450,26 +599,13 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4 mb-4">
-                                <div class="card border-left-warning h-100">
+                            <div class="col-md-6 mb-4">
+                                <div class="stat-card stat-card-warning h-100">
                                     <div class="card-body">
-                                        <h5 class="card-title text-warning">
-                                            <i class="fas fa-sign-out-alt"></i> Leaves
-                                        </h5>
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col-auto">
-                                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ $leaveStats['total'] ?? 0 }}</div>
-                                            </div>
-                                            <div class="col">
-                                                <div class="progress progress-sm mr-2">
-                                                    <div class="progress-bar bg-warning" role="progressbar"
-                                                        style="width: {{ $leaveStats['approved_percentage'] ?? 0 }}%" 
-                                                        aria-valuenow="{{ $leaveStats['approved_percentage'] ?? 0 }}" 
-                                                        aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 text-xs">
+                                        <i class="fas fa-sign-out-alt stat-icon"></i>
+                                        <div class="stat-title">Leaves</div>
+                                        <div class="stat-value">{{ $leaveStats['total'] ?? 0 }}</div>
+                                        <div class="stat-change">
                                             <span class="text-success mr-2">
                                                 <i class="fas fa-check"></i> {{ $leaveStats['approved'] ?? 0 }} Approved
                                             </span>
@@ -483,7 +619,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                        </div>
                     </div>
                 </div>
             </div>
@@ -491,7 +627,7 @@
             @if(auth()->user()->role === 'department_manager' && isset($deptAttendanceData) && isset($deptLeaveTypes))
             <div class="col-12 mb-4">
                 <div class="card shadow">
-                    <div class="card-header py-3 bg-gradient-info">
+                    <div class="card-header py-3 bg-gradient-primary">
                         <h6 class="m-0 font-weight-bold text-white">🏢 Department Statistics</h6>
                     </div>
                     <div class="card-body">
@@ -509,12 +645,6 @@
                 </div>
             </div>
             @endif
-
-            <!-- Recent Absences Section -->
-           
-
-            <!-- Recent Activities Section -->
-          
         </div>
     @endif
 </div>
@@ -544,7 +674,6 @@ $(document).ready(function() {
             datasets: [{
                 label: 'Employees',
                 data: [
-                    {{ $deptAttendanceData['present'] }},
                     {{ $deptAttendanceData['absent'] }},
                     {{ $deptAttendanceData['late'] }},
                     {{ $deptAttendanceData['on_leave'] }}
@@ -611,91 +740,369 @@ $(document).ready(function() {
         }
     });
     @endif
+    @if($user->evaluations->count() > 0)
+// Evaluation Radar Chart
+new Chart(document.getElementById('evaluationRadarChart'), {
+    type: 'radar',
+    data: {
+        labels: ['Punctuality', 'Work Quality', 'Teamwork'],
+        datasets: [{
+            label: 'Your Skills',
+            data: [
+                {{ $user->latestEvaluation->punctuality }},
+                {{ $user->latestEvaluation->work_quality }},
+                {{ $user->latestEvaluation->teamwork }}
+            ],
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+            pointRadius: 4
+        }]
+    },
+    options: {
+        scales: {
+            r: {
+                angleLines: { display: true },
+                suggestedMin: 0,
+                suggestedMax: 10
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+// Evaluation Progress Chart
+const evaluationDates = @json($user->evaluations->pluck('evaluation_date')->map(function($date) {
+    return \Carbon\Carbon::parse($date)->format('M Y');
+}));
+const evaluationAverages = @json($user->evaluations->pluck('average'));
+
+new Chart(document.getElementById('evaluationProgressChart'), {
+    type: 'line',
+    data: {
+        labels: evaluationDates,
+        datasets: [{
+            label: 'Performance Trend',
+            data: evaluationAverages,
+            fill: false,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            tension: 0.1,
+            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+            pointRadius: 5
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 10
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+@endif
 });
 </script>
+@endsection
 
+@section('styles')
 <style>
-    .avatar-wrapper {
+    /* تحسينات متقدمة للبطاقات */
+    :root {
+        --primary-color: #4e73df;
+        --secondary-color: #858796;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --light-color: #f8f9fc;
+        --dark-color: #5a5c69;
+        --card-shadow-hover: 0 15px 30px rgba(0, 0, 0, 0.12);
+        --card-border-radius: 12px;
+        --card-padding: 1.75rem;
+        --card-header-padding: 1.25rem 1.75rem;
+        --card-transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+
+    /* بطاقة إحصائيات محسنة */
+    .stat-card {
+        border: none;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.06);
+        transition: var(--card-transition);
+        overflow: hidden;
         position: relative;
-        width: fit-content;
+        z-index: 1;
+        background: white;
+        margin-bottom: 1.75rem;
     }
 
-    .avatar-table {
-        width: 40px;
-        height: 40px;
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--card-accent-color), transparent);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .stat-card .card-body {
+        padding: var(--card-padding);
+        position: relative;
+    }
+
+    .stat-card .stat-icon {
+        position: absolute;
+        right: 1.75rem;
+        top: 1.75rem;
+        font-size: 2.5rem;
+        opacity: 0.15;
+        color: var(--card-accent-color);
+    }
+
+    .stat-card .stat-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--card-accent-color);
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+    }
+
+    .stat-card .stat-change {
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+    }
+
+    /* ألوان البطاقات */
+    .stat-card-primary {
+        --card-accent-color: var(--primary-color);
+    }
+
+    .stat-card-secondary {
+        --card-accent-color: var(--secondary-color);
+    }
+
+    .stat-card-success {
+        --card-accent-color: var(--success-color);
+    }
+
+    .stat-card-info {
+        --card-accent-color: var(--info-color);
+    }
+
+    .stat-card-warning {
+        --card-accent-color: var(--warning-color);
+    }
+
+    .stat-card-danger {
+        --card-accent-color: var(--danger-color);
+    }
+
+    /* بطاقة أعياد الميلاد المحسنة */
+    .birthday-card {
+        border: none;
+        border-radius: var(--card-border-radius);
+        overflow: hidden;
+        transition: var(--card-transition);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        position: relative;
+        background: white;
+    }
+
+    .birthday-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .birthday-card .profile-img-container {
+        width: 100%;
+        height: 100px;
+        overflow: hidden;
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .birthday-card .profile-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #fff;
-        transition: transform 0.3s ease;
+        border: 4px solid white;
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
     }
 
-    .avatar-initials {
-        width: 40px;
-        height: 40px;
+    .birthday-card:hover .profile-img {
+        transform: translateX(-50%) scale(1.05);
+    }
+
+    .birthday-card .card-body {
+        padding: 3rem 1.5rem 1.5rem;
+        text-align: center;
+    }
+
+    .birthday-card .user-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+        color: #343a40;
+    }
+
+    .birthday-card .user-position {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+
+    .birthday-card .birthday-info {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
     }
 
-    .status-badge {
-        display: inline-block;
-        padding: 0.3em 0.6em;
-        font-size: 0.7em;
+    .birthday-card .birthday-info i {
+        margin-right: 0.5rem;
+    }
+
+    /* بطاقة التقييم المحسنة */
+    .evaluation-card {
+        border: none;
+        border-radius: var(--card-border-radius);
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        transition: var(--card-transition);
+        background: white;
+    }
+
+    .evaluation-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .evaluation-card .card-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        padding: var(--card-header-padding);
+        border-bottom: none;
+    }
+
+    .evaluation-card .overall-rating {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+
+    .evaluation-card .rating-item {
+        padding: 1rem;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.02);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .evaluation-card .rating-item:hover {
+        background: rgba(0, 0, 0, 0.05);
+        transform: translateX(5px);
+    }
+
+    .evaluation-card .rating-title {
         font-weight: 600;
-        line-height: 1;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .evaluation-card .rating-title i {
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .evaluation-card .progress {
+        height: 10px;
+        border-radius: 5px;
+    }
+
+    .evaluation-card .rating-value {
+        font-weight: 700;
+        margin-left: 0.5rem;
+    }
+
+    .notes-box {
+        border-left: 0.25rem solid var(--info-color);
+        background-color: rgba(54, 185, 204, 0.05);
+        padding: 1rem;
         border-radius: 0.25rem;
     }
 
-    .status-completed {
-        background-color: rgba(40, 167, 69, 0.1);
-        color: #28a745;
+    /* تأثيرات إضافية */
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
     }
 
-    .status-in-progress {
-        background-color: rgba(255, 193, 7, 0.1);
-        color: #ffc107;
+    .birthday-card:hover .profile-img {
+        animation: float 3s ease-in-out infinite;
     }
 
-    .status-missing {
-        background-color: rgba(220, 53, 69, 0.1);
-        color: #dc3545;
-    }
-
-    .table-responsive {
-        border-radius: 0.5rem;
-        overflow: hidden;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-
-    .table tbody tr:hover {
-        background-color: rgba(115, 103, 240, 0.04);
-    }
-
-    .card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-
-    .bg-gradient-danger {
-        background: linear-gradient(87deg, #f5365c 0, #f56036 100%) !important;
-    }
-
-    .bg-gradient-info {
-        background: linear-gradient(87deg, #11cdef 0, #1171ef 100%) !important;
-    }
-
-    @media (max-width: 767.98px) {
-        .avatar-table {
-            width: 36px;
-            height: 36px;
+    /* تجاوبية */
+    @media (max-width: 768px) {
+        .stat-card {
+            margin-bottom: 1.25rem;
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 2rem;
+            top: 1.25rem;
+            right: 1.25rem;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+        }
+        
+        .birthday-card .profile-img {
+            width: 70px;
+            height: 70px;
+            bottom: -35px;
+        }
+        
+        .birthday-card .card-body {
+            padding: 2.5rem 1rem 1rem;
         }
     }
 </style>

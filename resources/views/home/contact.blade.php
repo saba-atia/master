@@ -114,13 +114,7 @@
                 </button>
             </div>
 
-            <div class="sp-form-footer">
-                <p class="sp-form-disclaimer">
-                    By submitting this form, you agree to our 
-                    <a href="#" class="sp-form-policy-link">Privacy Policy</a> 
-                    and consent to contact.
-                </p>
-            </div>
+          
         </form>
     </div>
 

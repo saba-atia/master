@@ -36,7 +36,8 @@ class AttendanceController extends Controller
         // فلترة حسب القسم (للمديرين فقط)
         if ($department_id && $user->isAdminOrSuperAdmin()) {
             $query->whereHas('user', function ($q) use ($department_id) {
-                $q->where('department_id', $department_id);
+                $q->where('department_id', $department_id)
+                  ->where('status', 'active'); // إضافة شرط النشاط
             });
         }
 
@@ -45,13 +46,14 @@ class AttendanceController extends Controller
         // الموظفين الغائبين (للمديرين فقط)
         $absentEmployees = [];
         if ($user->isAdminOrSuperAdmin()) {
-            $absentQuery = User::whereDoesntHave('attendances', function ($q) use ($from, $to) {
-                if ($from && $to) {
-                    $q->whereBetween('date', [$from, $to]);
-                } else {
-                    $q->whereDate('date', today());
-                }
-            });
+            $absentQuery = User::where('status', 'active') // فقط الموظفين النشطين
+                ->whereDoesntHave('attendances', function ($q) use ($from, $to) {
+                    if ($from && $to) {
+                        $q->whereBetween('date', [$from, $to]);
+                    } else {
+                        $q->whereDate('date', today());
+                    }
+                });
 
             if ($department_id) {
                 $absentQuery->where('department_id', $department_id);
@@ -64,64 +66,93 @@ class AttendanceController extends Controller
     }
 
     /**
+     * عرض الغائبين عن اليوم
+     */
+    public function todaysAbsentees()
+    {
+        if (!auth()->user()->isAdminOrSuperAdmin()) {
+            abort(403);
+        }
+
+        $absentees = User::where('status', 'active') // فقط الموظفين النشطين
+                       ->whereDoesntHave('attendances', function ($q) {
+                           $q->whereDate('date', today());
+                       })
+                       ->get();
+
+        return view('dash.pages.attendance', compact('absentees'));
+    }
+
+    /**
      * تسجيل الحضور/الانصراف
      */
     public function store(Request $request)
-{
-    $user = Auth::user();
-    $today = Carbon::today();
-    $requiredHours = 8; // عدد الساعات المطلوبة يومياً
-
-    try {
-        // البحث عن سجل الحضور لهذا اليوم أو إنشاء جديد
-        $attendance = Attendance::firstOrNew([
-            'user_id' => $user->id,
-            'date' => $today
-        ]);
-
-        if (!$attendance->exists) {
-            // تسجيل الحضور (Check-in)
-            $attendance->fill([
-                'check_in' => Carbon::now(),
-                'status' => 'In Progress'
-            ])->save();
-
-            return back()->with('success', '✅ تم تسجيل الحضور بنجاح | ' . now()->format('h:i A'));
-
-        } elseif (!$attendance->check_out) {
-            // تسجيل الانصراف (Check-out)
-            $checkOutTime = Carbon::now();
-            
-            // حساب ساعات العمل بدقة
-            $workingHours = $this->calculateWorkingHours($attendance->check_in, $checkOutTime);
-            
-            // تحديث سجل الحضور
-            $attendance->update([
-                'check_out' => $checkOutTime,
-                'working_hours' => $workingHours,
-                'status' => $workingHours >= $requiredHours ? 'Completed' : 'Incomplete'
-            ]);
-
-            // رسالة مختلفة حسب حالة إكمال الساعات
-            if ($workingHours >= $requiredHours) {
-                $message = '✅ تم تسجيل الانصراف | يوم عمل مكتمل (' . number_format($workingHours, 2) . ' ساعة)';
-                $alertType = 'success';
-            } else {
-                $message = '⚠️ تم تسجيل الانصراف | يوم عمل غير مكتمل (' . number_format($workingHours, 2) . ' ساعة)';
-                $alertType = 'warning';
-            }
-
-            return back()->with($alertType, $message);
-
-        } else {
-            return back()->with('info', 'ℹ️ لقد سجلت الحضور والانصراف مسبقاً لهذا اليوم');
+    {
+        $user = Auth::user();
+        
+        // التأكد من أن الموظف نشط قبل التسجيل
+        if ($user->status !== 'active') {
+            return back()->with('error', '❌ لا يمكنك تسجيل الحضور لأن حسابك غير نشط');
         }
 
-    } catch (\Exception $e) {
-        Log::error('Attendance Error: ' . $e->getMessage());
-        return back()->with('error', '❌ حدث خطأ: ' . $e->getMessage());
+        $today = Carbon::today();
+        $requiredHours = 8;
+
+        try {
+            $attendance = Attendance::firstOrNew([
+                'user_id' => $user->id,
+                'date' => $today
+            ]);
+
+            if (!$attendance->exists) {
+                $attendance->fill([
+                    'check_in' => Carbon::now(),
+                    'status' => 'In Progress'
+                ])->save();
+
+                return back()->with('success', '✅ تم تسجيل الحضور بنجاح | ' . now()->format('h:i A'));
+
+            } elseif (!$attendance->check_out) {
+                $checkOutTime = Carbon::now();
+                $workingHours = $this->calculateWorkingHours($attendance->check_in, $checkOutTime);
+                
+                $attendance->update([
+                    'check_out' => $checkOutTime,
+                    'working_hours' => $workingHours,
+                    'status' => $workingHours >= $requiredHours ? 'Completed' : 'Incomplete'
+                ]);
+
+                $message = $workingHours >= $requiredHours 
+                    ? '✅ تم تسجيل الانصراف | يوم عمل مكتمل (' . number_format($workingHours, 2) . ' ساعة)'
+                    : '⚠️ تم تسجيل الانصراف | يوم عمل غير مكتمل (' . number_format($workingHours, 2) . ' ساعة)';
+
+                return back()->with($workingHours >= $requiredHours ? 'success' : 'warning', $message);
+
+            } else {
+                return back()->with('info', 'ℹ️ لقد سجلت الحضور والانصراف مسبقاً لهذا اليوم');
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Attendance Error: ' . $e->getMessage());
+            return back()->with('error', '❌ حدث خطأ: ' . $e->getMessage());
+        }
     }
-}
+
+    /**
+     * حساب ساعات العمل بدقة
+     */
+    private function calculateWorkingHours($checkIn, $checkOut)
+    {
+        try {
+            $start = Carbon::parse($checkIn);
+            $end = Carbon::parse($checkOut);
+            $totalSeconds = $end->diffInSeconds($start);
+            return round($totalSeconds / 3600, 2);
+        } catch (\Exception $e) {
+            Log::error('خطأ في حساب ساعات العمل: ' . $e->getMessage());
+            return 0;
+        }
+    }
 
     /**
      * تحديث الصورة الشخصية
@@ -134,9 +165,14 @@ class AttendanceController extends Controller
 
         try {
             $user = auth()->user();
+            
+            // التأكد من أن الموظف نشط
+            if ($user->status !== 'active') {
+                return back()->with('error', '❌ لا يمكنك تحديث الصورة لأن حسابك غير نشط');
+            }
+
             $path = $request->file('avatar')->store('users/avatars', 'public');
             
-            // حذف الصورة القديمة إذا كانت موجودة
             if ($user->photo_url && Storage::disk('public')->exists($user->photo_url)) {
                 Storage::disk('public')->delete($user->photo_url);
             }
@@ -149,57 +185,4 @@ class AttendanceController extends Controller
             return back()->with('error', 'فشل تحديث الصورة: ' . $e->getMessage());
         }
     }
-
-    /**
-     * حساب ساعات العمل بدقة
-     */
-/**
- * حساب ساعات العمل بدقة
- */
-/**
- * حساب ساعات العمل بدقة
- */
-private function calculateWorkingHours($checkIn, $checkOut)
-{
-    try {
-        // تحويل الأوقات إلى كائنات Carbon
-        $start = Carbon::parse($checkIn);
-        $end = Carbon::parse($checkOut);
-        
-        // حساب الفرق بالثواني لضمان الدقة
-        $totalSeconds = $end->diffInSeconds($start);
-        
-        // التحويل إلى ساعات مع الكسور
-        $hours = $totalSeconds / 3600;
-        
-        // تقريب إلى منزلتين عشريتين
-        return round($hours, 2);
-        
-    } catch (\Exception $e) {
-        Log::error('خطأ في حساب ساعات العمل: ' . $e->getMessage());
-        return 0;
-    }
-}
-
-    // ─── الدوال الإضافية ───────────────────────────────────────────────────────
-
-    /**
-     * عرض الغائبين عن اليوم
-     */
-    public function todaysAbsentees()
-    {
-        if (!auth()->user()->isAdminOrSuperAdmin()) {
-            abort(403);
-        }
-
-        $absentees = User::whereDoesntHave('attendances', function ($q) {
-            $q->whereDate('date', today());
-        })->get();
-
-        return view('dash.pages.absentees', compact('absentees'));
-    }
-
-    /**
-     */
-   
 }
