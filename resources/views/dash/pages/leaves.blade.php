@@ -14,22 +14,12 @@
 @endif
 
 <!-- Leave Request Form -->
-@if(!in_array(auth()->user()->role, ['super_admin']))
+@if(auth()->user()->role !== 'super_admin')
 <div class="leave-vacation-form">
     <div class="form-header">
         <h2>Submit Leave Request</h2>
         <p>Please fill in the details of your leave request</p>
     </div>
-
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
 
     <form method="POST" action="{{ route('leaves.store') }}">
         @csrf
@@ -74,8 +64,8 @@
 </div>
 @endif
 
-<!-- Filter Section for Admin/Super Admin -->
-@if(in_array(auth()->user()->role, ['admin', 'super_admin', 'department_manager']))
+<!-- Filter Section -->
+@if(in_array(auth()->user()->role, ['super_admin', 'admin', 'department_manager']))
 <div class="filter-container">
     <form method="GET" action="{{ route('leaves.index') }}" class="filter-form">
         <div class="form-group">
@@ -83,9 +73,9 @@
             <select name="status" id="status" class="form-control">
                 <option value="">All Statuses</option>
                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                @if(auth()->user()->role === 'department_manager')
-                <option value="department_approved" {{ request('status') == 'department_approved' ? 'selected' : '' }}>Approved by Me</option>
-                @endif
+                <option value="department_approved" {{ request('status') == 'department_approved' ? 'selected' : '' }}>Department Approved</option>
+                <option value="pending_admin" {{ request('status') == 'pending_admin' ? 'selected' : '' }}>Pending Admin</option>
+                <option value="pending_super_admin" {{ request('status') == 'pending_super_admin' ? 'selected' : '' }}>Pending Super Admin</option>
                 <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                 <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
             </select>
@@ -100,7 +90,7 @@
             </select>
         </div>
         
-        @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+@if(in_array(auth()->user()->role, ['super_admin', 'admin', 'department_manager']))
         <div class="form-group">
             <label for="user_id" class="form-label">Employee</label>
             <select name="user_id" id="user_id" class="form-control">
@@ -143,10 +133,12 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3 style="margin: 0; color: #3a3541; display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-list"></i>
-            @if(auth()->user()->role === 'department_manager')
+            @if(auth()->user()->isSuperAdmin())
+                Admin Leave Requests
+            @elseif(auth()->user()->isAdmin())
+                Department Managers Leave Requests
+            @elseif(auth()->user()->isDepartmentManager())
                 My Department Leave Requests
-            @elseif(in_array(auth()->user()->role, ['admin', 'super_admin']))
-                All Leave Requests
             @else
                 My Leave Requests
             @endif
@@ -176,91 +168,74 @@
                 <tr>
                     <td>
                         <div class="employee-cell">
-                            @if($leave->user->photo_url && Storage::disk('public')->exists($leave->user->photo_url))
+                            @if($leave->user && $leave->user->photo_url && Storage::disk('public')->exists($leave->user->photo_url))
                                 <img src="{{ asset('storage/'.$leave->user->photo_url) }}"
-                                     alt="{{ $leave->user->name }}"
+                                     alt="{{ $leave->user->name ?? 'Employee' }}"
                                      class="employee-avatar">
                             @else
-                                <div class="employee-avatar" style="background-color: {{ $leave->user->avatar_color }};">
-                                    <span class="avatar-initials">{{ $leave->user->initials }}</span>
+                                <div class="employee-avatar" style="background-color: {{ $leave->user->avatar_color ?? '#' . substr(md5($leave->id ?? 'default'), 0, 6) }};">
+                                    <span class="avatar-initials">
+                                        @if($leave->user)
+                                            {{ substr($leave->user->name, 0, 1) }}{{ isset(explode(' ', $leave->user->name)[1]) ? substr(explode(' ', $leave->user->name)[1], 0, 1) : '' }}
+                                        @else
+                                            NA
+                                        @endif
+                                    </span>
                                 </div>
                             @endif
                             <div>
-                                <div style="font-weight: 600;">{{ $leave->user->name }}</div>
-                                <div style="color: #6c757d; font-size: 0.8rem;">{{ $leave->department->name ?? 'N/A' }}</div>
+                                <div style="font-weight: 600;">{{ $leave->user->name ?? 'Unknown User' }}</div>
+                                <div style="color: #6c757d; font-size: 0.8rem;">
+                                    {{ $leave->department->name ?? ($leave->user->department->name ?? 'N/A') }}
+                                </div>
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <span style="text-transform: capitalize;">{{ $leave->type }}</span>
-                    </td>
-                    <td>
-                        <div style="font-weight: 500;">{{ \Carbon\Carbon::parse($leave->start_time)->format('M d, Y') }}</div>
-                        <div style="color: #6c757d; font-size: 0.8rem;">{{ \Carbon\Carbon::parse($leave->start_time)->format('h:i A') }}</div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 500;">{{ \Carbon\Carbon::parse($leave->end_time)->format('M d, Y') }}</div>
-                        <div style="color: #6c757d; font-size: 0.8rem;">{{ \Carbon\Carbon::parse($leave->end_time)->format('h:i A') }}</div>
-                    </td>
-                    <td class="duration-cell">
-                        {{ number_format($leave->duration_hours, 2) }} hrs
-                    </td>
+                    <td>{{ ucfirst($leave->type) }}</td>
+                    <td>{{ $leave->start_time->format('Y-m-d H:i') }}</td>
+                    <td>{{ $leave->end_time->format('Y-m-d H:i') }}</td>
+                    <td>{{ number_format($leave->duration_hours, 2) }} hours</td>
                     <td>
                         <span class="status-badge status-{{ $leave->status }}">
                             {{ ucfirst(str_replace('_', ' ', $leave->status)) }}
                         </span>
-                       @if($leave->approved_by && $leave->approver)
-    <div style="color: #6c757d; font-size: 0.75rem; margin-top: 3px;">
-        by {{ $leave->approver->name }}
-    </div>
-@endif
                     </td>
                     <td>
                         <div class="actions-container">
-                            @if(auth()->user()->role === 'department_manager' && 
-                                $leave->status == 'pending' && 
-                                $leave->user_id != auth()->id())
-                                <!-- Department Manager Buttons -->
-                                <form action="{{ route('leaves.update', $leave->id) }}" method="POST">
-                                    @csrf @method('PUT')
-                                    <input type="hidden" name="status" value="department_approved">
-                                    <button type="submit" class="action-btn approve-btn">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                </form>
-                                <form action="{{ route('leaves.update', $leave->id) }}" method="POST">
-                                    @csrf @method('PUT')
-                                    <input type="hidden" name="status" value="rejected">
-                                    <button type="submit" class="action-btn reject-btn">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </form>
-                            @endif
-
-                            @if(auth()->user()->role === 'super_admin')
-                                <!-- Super Admin Buttons -->
-                                @if($leave->status === 'pending' || $leave->status === 'department_approved')
-                                    <form action="{{ route('leaves.update', $leave->id) }}" method="POST">
-                                        @csrf @method('PUT')
-                                        <input type="hidden" name="status" value="approved">
-                                        <button type="submit" class="action-btn approve-btn">
-                                            <i class="fas fa-check-circle"></i> Approve
-                                        </button>
-                                    </form>
-                                    <form action="{{ route('leaves.update', $leave->id) }}" method="POST">
-                                        @csrf @method('PUT')
-                                        <input type="hidden" name="status" value="rejected">
-                                        <button type="submit" class="action-btn reject-btn">
-                                            <i class="fas fa-times-circle"></i> Reject
-                                        </button>
-                                    </form>
-                                @endif
-                            @endif
-                            
-                            <!-- View Button -->
                             <button class="action-btn view-btn" onclick="showLeaveDetails({{ $leave->id }})">
                                 <i class="fas fa-eye"></i> View
                             </button>
+                            
+                            @if(auth()->user()->canApproveLeave($leave))
+                                @if($leave->status === 'pending' && auth()->user()->isDepartmentManager())
+                                <button class="action-btn approve-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'department_approved')">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="action-btn reject-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'rejected')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                @elseif($leave->status === 'pending_admin' && auth()->user()->isAdmin())
+                                <button class="action-btn approve-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'pending_super_admin')">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="action-btn reject-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'rejected')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                @elseif($leave->status === 'pending_super_admin' && auth()->user()->isSuperAdmin())
+                                <button class="action-btn approve-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'approved')">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="action-btn reject-btn" 
+                                        onclick="updateLeaveStatus({{ $leave->id }}, 'rejected')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                @endif
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -271,7 +246,7 @@
         <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <h4>No leave requests found</h4>
-            <p>@if(in_array(auth()->user()->role, ['admin', 'super_admin', 'department_manager'])) No leave requests match your filters @else You haven't submitted any leave requests yet @endif</p>
+            <p>@if(auth()->user()->canViewOtherUsers()) No leave requests match your filters @else You haven't submitted any leave requests yet @endif</p>
         </div>
         @endif
     </div>
@@ -299,6 +274,15 @@
         </div>
     </div>
 </div>
+
+<!-- Status Update Form (hidden) -->
+<form id="statusUpdateForm" method="POST" style="display: none;">
+    @csrf
+    @method('PUT')
+    <input type="hidden" name="status" id="statusInput">
+    <textarea name="notes" id="notesInput" placeholder="Optional notes..."></textarea>
+    <button type="submit">Submit</button>
+</form>
 
 <script>
     // Calculate duration between start and end times
@@ -407,6 +391,20 @@
                     </div>
                 `;
                 
+                // Add action buttons if user can approve
+                if (data.can_approve) {
+                    content += `
+                        <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                            <button class="action-btn approve-btn" onclick="updateLeaveStatus(${data.id}, '${data.next_approval_status}')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="action-btn reject-btn" onclick="updateLeaveStatus(${data.id}, 'rejected')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 modalContent.innerHTML = content;
             })
             .catch(error => {
@@ -418,6 +416,25 @@
                     </div>
                 `;
             });
+    }
+
+    // Update leave status
+    function updateLeaveStatus(leaveId, status) {
+        if (confirm(`Are you sure you want to ${status} this leave request?`)) {
+            const form = document.getElementById('statusUpdateForm');
+            form.action = `/leaves/${leaveId}`;
+            document.getElementById('statusInput').value = status;
+            
+            // For rejections, ask for notes
+            if (status === 'rejected') {
+                const notes = prompt('Please enter the reason for rejection (optional):');
+                document.getElementById('notesInput').value = notes || '';
+            } else {
+                document.getElementById('notesInput').value = '';
+            }
+            
+            form.submit();
+        }
     }
 
     // Close modal
@@ -464,6 +481,7 @@
         }
     });
 </script>
+
 <style>
   /* ===== Base Styles ===== */
 .leave-vacation-container {
@@ -614,11 +632,12 @@
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
+    color: black;
 }
 
 .status-pending {
     background-color: #fff3cd;
-    color: #856404;
+    color: #111010;
 }
 
 .status-approved {

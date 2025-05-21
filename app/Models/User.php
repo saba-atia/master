@@ -128,6 +128,28 @@ public function canApproveVacation(Vacation $vacation): bool
 
     return false;
 }
+
+public function canApproveLeave($leave): bool
+{
+    if ($this->isDepartmentManager() && $leave->status === 'pending') {
+        return true;
+    }
+
+    if ($this->isAdmin() && $leave->status === 'pending_admin') {
+        return true;
+    }
+
+    if ($this->isSuperAdmin() && $leave->status === 'pending_super_admin') {
+        return true;
+    }
+
+    return false;
+}
+public function isRegularEmployee()
+{
+    return $this->role === self::ROLE_EMPLOYEE;
+}
+
     
 public function getBirthdayAttribute()
 {

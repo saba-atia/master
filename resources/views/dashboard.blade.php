@@ -528,47 +528,42 @@
                 </div>
             </div>
 
-            @if(count($todayBirthdays ?? []) > 0)
-            <div class="col-12 mb-4">
-                <div class="card shadow border-0">
-                    <div class="card-header py-3 bg-gradient-primary">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-white">
-                                <i class="fas fa-birthday-cake mr-2"></i> Today's Birthdays
-                            </h6>
-                            <span class="badge badge-light">{{ count($todayBirthdays) }}</span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            @foreach($todayBirthdays as $birthday)
-                            <div class="col-md-3 mb-4">
-                                <div class="birthday-card h-100">
-                                    <div class="profile-img-container">
-                                        <img class="profile-img" 
-                                             src="{{ $birthday->avatar_url ?? asset('img/default-avatar.png') }}" 
-                                             alt="{{ $birthday->name }}">
-                                    </div>
-                                    <div class="card-body">
-                                        <h5 class="user-name">{{ $birthday->name }}</h5>
-                                        <p class="user-position">{{ $birthday->position }}</p>
-                                        <div class="birthday-info">
-                                            <i class="fas fa-birthday-cake"></i>
-                                            {{ \Carbon\Carbon::parse($birthday->birth_date)->format('M d') }}
-                                        </div>
-                                        <button class="btn btn-primary btn-sm send-wish" 
-                                                data-user-id="{{ $birthday->id }}">
-                                            <i class="fas fa-gift mr-1"></i> Send Wish
-                                        </button>
-                                    </div>
-                                </div>
+      @if(isset($todayBirthdays) && count($todayBirthdays) > 0)
+<div class="col-12 mb-4">
+    <div class="card shadow border-0">
+        <div class="card-header py-3 bg-gradient-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-birthday-cake mr-2"></i> birthdays Today
+                </h6>
+                <span class="badge badge-light">{{ count($todayBirthdays) }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @foreach($todayBirthdays as $birthday)
+                <div class="col-md-3 mb-4">
+                    <div class="birthday-card h-100">
+                        <div class="card-body text-center">
+                            <h5 class="user-name mb-2">{{ $birthday->name }}</h5>
+                            <div class="birthday-info mb-3">
+                                <i class="fas fa-birthday-cake"></i>
+                                @if(isset($birthday->birth_date))
+                                    {{ \Carbon\Carbon::parse($birthday->birth_date)->format('d M') }}
+                                @endif
                             </div>
-                            @endforeach
+                            <a href="{{ route('birthdays.index') }}" class="btn btn-primary btn-sm btn-block send-wish-btn">
+                                <i class="fas fa-gift mr-1"></i> Send Wish
+                            </a>
                         </div>
                     </div>
                 </div>
+                @endforeach
             </div>
-            @endif
+        </div>
+    </div>
+</div>
+@endif
 
             <!-- Statistics Overview Section -->
             <div class="col-12 mb-4">
@@ -809,6 +804,8 @@ new Chart(document.getElementById('evaluationProgressChart'), {
 @endif
 });
 </script>
+
+
 @endsection
 
 @section('styles')
@@ -921,20 +918,18 @@ new Chart(document.getElementById('evaluationProgressChart'), {
     }
 
     /* بطاقة أعياد الميلاد المحسنة */
-    .birthday-card {
-        border: none;
-        border-radius: var(--card-border-radius);
-        overflow: hidden;
-        transition: var(--card-transition);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        position: relative;
-        background: white;
-    }
+  .birthday-card {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
 
-    .birthday-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--card-shadow-hover);
-    }
+.birthday-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
 
     .birthday-card .profile-img-container {
         width: 100%;
@@ -992,6 +987,37 @@ new Chart(document.getElementById('evaluationProgressChart'), {
     .birthday-card .birthday-info i {
         margin-right: 0.5rem;
     }
+
+    .user-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.birthday-info {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+
+.send-wish-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 120px;
+}
+
+.send-wish-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+}
 
     /* بطاقة التقييم المحسنة */
     .evaluation-card {

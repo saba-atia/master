@@ -37,7 +37,5 @@ Gate::define('view-reports', function ($user) {
 
         
     }
- protected $policies = [
-    Evaluation::class => EvaluationPolicy::class,
-];
+
 }

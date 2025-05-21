@@ -105,29 +105,36 @@
                             <i class="fas fa-gift"></i> Received Wishes ({{ $user->receivedWishes->count() }})
                         </h4>
                         <div class="wishes-list">
-                            @foreach($user->receivedWishes->take(3) as $wish)
-                            <div class="wish-item">
-                                <div class="wisher-avatar">
-                                    @if($wish->sender->profile_photo_path)
-                                        <img src="{{ Storage::url($wish->sender->profile_photo_path) }}" 
-                                             alt="{{ $wish->sender->name }}"
-                                             onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
-                                        <div class="avatar-initials" style="display:none">
-                                            {{ getInitials($wish->sender->name) }}
-                                        </div>
-                                    @else
-                                        <div class="avatar-initials">
-                                            {{ getInitials($wish->sender->name) }}
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="wish-details">
-                                    <strong>{{ $wish->sender->name }}</strong>
-                                    <p class="wish-text">"{{ Str::limit($wish->message, 50) }}"</p>
-                                    <small class="wish-time">{{ $wish->created_at->diffForHumans() }}</small>
-                                </div>
-                            </div>
-                            @endforeach
+               @foreach($user->receivedWishes as $wish)
+    <div class="wish-item">
+        <div class="wisher-avatar">
+            @if($wish->sender) {{-- تحقق من وجود المرسل أولاً --}}
+                @if($wish->sender->profile_photo_path)
+                    <img src="{{ Storage::url($wish->sender->profile_photo_path) }}"
+                         alt="{{ $wish->sender->name }}"
+                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="avatar-initials" style="display:none">
+                        {{ getInitials($wish->sender->name) }}
+                    </div>
+                @else
+                    <div class="avatar-initials">
+                        {{ getInitials($wish->sender->name) }}
+                    </div>
+                @endif
+            @else
+                <div class="avatar-initials">
+                    {{-- عرض بديل إذا لم يوجد مرسل --}}
+                    <i class="fas fa-user-slash"></i>
+                </div>
+            @endif
+        </div>
+        <div class="wish-details">
+            <div class="wish-header">
+                <strong>{{ $wish->sender ? $wish->sender->name : 'Unknown User' }}</strong>
+            </div>
+        </div>
+    </div>
+@endforeach
                             
                             @if($user->receivedWishes->count() > 3)
                             <div class="view-all-wishes">

@@ -1,4 +1,4 @@
-@extends('home\layout\usehome')
+@extends('home.layout.usehome')
 @section('title','SMART PUNCH')
 @section('content')
 <style>
@@ -142,7 +142,7 @@
           <h1>SMART PUNCH</h1>
           <p>A comprehensive HR system to manage attendance, leave, evaluations, and more, with advanced features and an interactive dashboard</p>
           <div class="d-flex">
-            <a href="./contact.html" class="btn-get-started">Request a Demo</a>
+            <a href="./contact" class="btn-get-started">Request a Demo</a>
           </div>
         </div>
         <div class="col-lg-6 order-1 order-lg-2 hero-img" data-aos="zoom-out" data-aos-delay="100">
